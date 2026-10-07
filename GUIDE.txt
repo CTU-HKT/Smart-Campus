@@ -1,0 +1,17 @@
+Keycloak	8080	http://localhost:8080
+APISIX	9080	http://localhost:9080
+APISIX Admin API	9180	Chỉ dùng để cấu hình APISIX
+PostgREST	3000	http://localhost:3000
+Student Portal	3001	http://localhost:3001
+PostgreSQL	5432	Chỉ dùng nội bộ Docker
+etcd	2379	Chỉ dùng nội bộ Docker
+
+Các khởi động : 
+1. Vào folder chính Smart-campus
+2. docker compose up -d (để pull các images về máy)
+3. docker ps (để check các container đang chạy) đủ 5 container là ok
+4. truy cập vào core thông qua các Port
+
+
+DATA: 
+    PostgreSQL và etcd lưu ở volume của docker
