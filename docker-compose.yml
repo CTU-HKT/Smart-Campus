@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: smart-campus-postgres
+    environment:
+      POSTGRES_DB: smartcampus
+      POSTGRES_USER: smartcampus
+      POSTGRES_PASSWORD: smartcampus
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - smart-campus
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.0
+    container_name: smart-campus-keycloak
+    depends_on:
+      - postgres
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/smartcampus
+      KC_DB_USERNAME: smartcampus
+      KC_DB_PASSWORD: smartcampus
+
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: Admin123!
+    command: start-dev
+    ports:
+      - "8080:8080"
+    networks:
+      - smart-campus
+  etcd:
+    image: bitnamilegacy/etcd:3.5.11
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+    volumes:
+      - etcd_data:/bitnami/etcd
+    networks:
+      - smart-campus
+
+  apisix:
+    image: apache/apisix:3.13.0-debian
+    environment:
+      ADMIN_KEY: ${ADMIN_KEY}
+    depends_on:
+      - etcd
+    volumes:
+      - ./apisix_conf/config.yaml:/usr/local/apisix/conf/config.yaml
+    ports:
+        - "9080:9080"
+        - "127.0.0.1:9180:9180"
+    networks:
+      - smart-campus
+
+  postgrest:
+    image: postgrest/postgrest
+    container_name: smart-campus-postgrest
+    depends_on:
+      - postgres
+    environment:
+      PGRST_DB_URI: postgres://smartcampus:smartcampus@postgres:5432/smartcampus
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+    ports:
+      - "3000:3000"
+    networks:
+      - smart-campus
+
+  student-portal:
+    build:
+      context: ./student-portal
+    container_name: smart-campus-student-portal
+    ports:
+      - "3001:3000"
+    networks:
+      - smart-campus
+volumes:
+  postgres_data:
+  etcd_data:
+networks:
+  smart-campus:
+    driver: bridge
+
+    
