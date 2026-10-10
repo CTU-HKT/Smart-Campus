@@ -8,9 +8,25 @@ etcd	http://localhost:2379	                Chỉ dùng nội bộ Docker
 
 Các khởi động : 
 1. Vào folder chính Smart-campus
-2. docker compose up -d (để pull các images về máy)
-3. docker ps (để check các container đang chạy) đủ 5 container là ok
-4. truy cập vào core thông qua các Port
+2. Chạy lệnh 
+    -- WINDOWS : 
+    $bytes = New-Object byte[] 32
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    $rng.GetBytes($bytes)
+    ($bytes | ForEach-Object { $_.ToString('x2') }) -join ''
+    $rng.Dispose()
+    
+    -- macOS/LINUX : 
+    openssl rand -hex 32
+
+    => Sẽ ra 1 chuỗi key.
+    Copy key đó.
+3. chạy lệnh
+    cp .env.example .env
+4. Dán chuỗi key vào sau (ADMIN_Key=)
+5. docker compose up -d (để pull các images về máy)
+6. docker ps (để check các container đang chạy) đủ 6 container là ok
+7. truy cập vào core thông qua các Port để test.
 
 
 DATA: 
