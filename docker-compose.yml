@@ -24,6 +24,13 @@ services:
 
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: Admin123!
+
+      #Fix IP giữa container và host
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: true
+      KC_HTTP_ENABLED: true
+      KC_PROXY_HEADERS: xforwarded
     command: start-dev
     ports:
       - "8080:8080"
