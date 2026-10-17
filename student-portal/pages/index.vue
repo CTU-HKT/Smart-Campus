@@ -18,10 +18,10 @@
 
         <!-- Nút bên phải -->
         <div class="nav-actions">
-          <a href="http://localhost:8080/realms/smartcampus/protocol/openid-connect/auth?client_id=student-portal&response_type=code&scope=openid%20profile%20email&redirect_uri=http://localhost:3000/callback" class="login-link">
+          <a href="" class="login-link">
           Log in
           </a>
-          <a href="http://localhost:8080/realms/smartcampus/protocol/openid-connect/registrations?client_id=student-portal&response_type=code&scope=openid%20profile%20email&redirect_uri=http://localhost:3000/callback" class="btn btn-signup">
+          <a href="" class="btn btn-signup">
           Sign up
           </a>
         </div>

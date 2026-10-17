@@ -152,7 +152,7 @@ deployment:
     allow_admin:
       - 127.0.0.0/24
       - 172.19.0.0/16
-    #Cho phép IP từ máy có thể vào 
+      #Cho phép IP từ máy có thể vào
       - 0.0.0.0/0
     admin_api_version: v3
     admin_key:
