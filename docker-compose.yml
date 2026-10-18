@@ -8,6 +8,7 @@ services:
       POSTGRES_PASSWORD: smartcampus
     volumes:
       - postgres_data:/var/lib/postgresql
+      - ./database/init-scripts:/docker-entrypoint-initdb.d
     networks:
       - smart-campus
 
@@ -25,17 +26,19 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: Admin123!
 
-      #Fix IP giữa container và host
       KC_HOSTNAME: http://localhost:8080
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: true
       KC_HTTP_ENABLED: true
       KC_PROXY_HEADERS: xforwarded
-    command: start-dev
+    volumes:
+      - ./keycloak/dxos-realm.json:/opt/keycloak/data/import/dxos-realm.json
+    command: start-dev --import-realm
     ports:
       - "8080:8080"
     networks:
       - smart-campus
+
   etcd:
     image: bitnamilegacy/etcd:3.5.11
     environment:
@@ -49,15 +52,14 @@ services:
 
   apisix:
     image: apache/apisix:3.13.0-debian
-    environment:
-      ADMIN_KEY: ${ADMIN_KEY}
     depends_on:
       - etcd
     volumes:
+      # Nạp cấu hình Standalone
       - ./apisix_conf/config.yaml:/usr/local/apisix/conf/config.yaml
+      - ./apisix_conf/apisix.yaml:/usr/local/apisix/conf/apisix.yaml
     ports:
         - "9080:9080"
-        - "127.0.0.1:9180:9180"
     networks:
       - smart-campus
 
@@ -67,9 +69,13 @@ services:
     depends_on:
       - postgres
     environment:
-      PGRST_DB_URI: postgres://smartcampus:smartcampus@postgres:5432/smartcampus
+      # Dùng user authenticator (đã tạo trong init.sql)
+      PGRST_DB_URI: postgres://authenticator:secretpassword@postgres:5432/smartcampus
       PGRST_DB_SCHEMAS: public
-      PGRST_DB_ANON_ROLE: anon
+      # Dùng role web_anon (đã tạo trong init.sql)
+      PGRST_DB_ANON_ROLE: web_anon
+      # Cục JWKS lấy từ Keycloak để verify token
+      PGRST_JWT_SECRET: '{"keys":[{"kid":"fkn8y9rvrsE2DpuV3zKXI1GNrwS27jzzMuWp3aCL2LE","kty":"RSA","alg":"RSA-OAEP","use":"enc","x5c":["MIIClzCCAX8CBgGhTdC/3DANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARkeG9zMB4XDTI2MTAxODA2NTk0OFoXDTM2MTAxODA3MDEyOFowDzENMAsGA1UEAwwEZHhvczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKqy42gUhVktg0Clr/eCABEbQXhEUH8gG909EUiJRU6Hv3zqJkoSd6bLaIl9Jcm/B9TleghjXwDEfMl5vLEDIPmFyNKrMgum75t8ARoc5qoR1L3sXiZw9TWjgDjZA48xVtBLEaRqDXu32/4Sku2q5tZVSfnkUj0XwT94K/wHr5mIGFZ7I7gz5Ae8aimkD3hTLlwT00JK3M0Aml0jGKbime2I5/iJCEFn/rnRByUCf4B8qnRG+xbfcLxYsZwUgUadSiZyK64wN4+aPYJ7jTYSGJRGPpJaf52bG1ii4yHF3zT1JlTnpGp2puvOFjF78A2M+fE4ba9kDJW21Sz4pMF8JNsCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAYYlORRqIH9euk5fOL2vXYTEwVDk34Ye/RlNOM8ibCK6AfdaDwsNxuz3Ln5za19Sad9jKOeXnVPjwZqaGS/cKM42f6Ly+8Yj2/0T9/iJ3/GoJ/jOf4Tk/vvGmHx7ndogLqBpLDFg27A4r3pEUDEXzppNkfL0kSpQnE3l9hA5lyfA2SdDb335fd5lbTEfgvqgzhlRDg210e2ibd17xusDt9g4gjeEur/2GQA63OFbENlzJvG2nc5X7Jro+I3mwCYimYVW+BsKQnj9eMthUNPmw/DlRM1l5nizxT7SB1Pm/1lFPyJW49gZImdF7e2giQ87A/qvKQUWOUuxckxtpkd8dug=="],"x5t":"JSsMUA69gsXEsRxEkHAuDjeoJvg","x5t#S256":"cOioMva3Q8vIvc8kGY0_tLW83rZresnCZ98Z839nAP0","n":"qrLjaBSFWS2DQKWv94IAERtBeERQfyAb3T0RSIlFToe_fOomShJ3pstoiX0lyb8H1OV6CGNfAMR8yXm8sQMg-YXI0qsyC6bvm3wBGhzmqhHUvexeJnD1NaOAONkDjzFW0EsRpGoNe7fb_hKS7arm1lVJ-eRSPRfBP3gr_AevmYgYVnsjuDPkB7xqKaQPeFMuXBPTQkrczQCaXSMYpuKZ7Yjn-IkIQWf-udEHJQJ_gHyqdEb7Ft9wvFixnBSBRp1KJnIrrjA3j5o9gnuNNhIYlEY-klp_nZsbWKLjIcXfNPUmVOekanam684WMXvwDYz58Thtr2QMlbbVLPikwXwk2w","e":"AQAB"},{"kid":"LwMTyEAHRgPViey5e3SfOi3_Tbs8AFK5NGOI4BRPIsY","kty":"RSA","alg":"RS256","use":"sig","x5c":["MIIClzCCAX8CBgGhTdC+qTANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARkeG9zMB4XDTI2MTAxODA2NTk0OFoXDTM2MTAxODA3MDEyOFowDzENMAsGA1UEAwwEZHhvczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANDaFmvysBRcYupSmZksItgpwrkktRRA7INLT4Nu3pbXN2HQ1gpfDztSqe87MQX8YCMnZKUMFUylWCddhaeTCjsYhaQj3Z4ikuSXTjzshkVUCV3gc6K9ott37sY+H43ejWtBVZtCTjeRtgquqEuUjheiGGGlG+zz2f+zLG5IYCuVwSZgb9HbXJOPxBFNVFwb5c0El0nu1L9OBdnAAF5gICZIUQSU8+IqCzsE47I9oFnE7Rk3rTxuGKhaz2YcMDmHP5b3WZ1EkYN1iqGAe1nhprICRiYLe2KmYp22Wk6jqcjW17kYH7hkkR2xvIqrReXlPcQtsVAE3CJ6zO+fONUyUk0CAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAjfpqjyNktbFnc7aamcCzXiX62t2ldw4SoYvePZLUgyEqhL9B+KnLLE6NxXYdQkq4Ap1w6bAfqGluXWh79tonGYgzKLwMwzpvtbZJxJTqKxdYvRm8fjGKCjmdZ+uZ+d5/S2NEqdv/5l1A6hI/SCf41KuPVepifevEYk/D8VtEetay/9lMS+Tb7sxqstG6QzLNAHI50Tl171zv9QbenqRkkscvsjxF7ZJxTb/l6Or/JlDbtTVuF/gzIHBF/4Vz7rrA+/zsscrXJMurN0S/eaaidTirCD6yPX82kR5phJcAOl02eYoBUPG7W3FbS/6OXiA0tc8kV1XDM4exDgTlalZqBw=="],"x5t":"Mhdb6eyDXYLQnka5qCeqPC0KiqE","x5t#S256":"81aOXKrB3tEpsmGWKS10ytcaDnbMBJtO5l8u-sBDnvk","n":"0NoWa_KwFFxi6lKZmSwi2CnCuSS1FEDsg0tPg27eltc3YdDWCl8PO1Kp7zsxBfxgIydkpQwVTKVYJ12Fp5MKOxiFpCPdniKS5JdOPOyGRVQJXeBzor2i23fuxj4fjd6Na0FVm0JON5G2Cq6oS5SOF6IYYaUb7PPZ_7MsbkhgK5XBJmBv0dtck4_EEU1UXBvlzQSXSe7Uv04F2cAAXmAgJkhRBJTz4ioLOwTjsj2gWcTtGTetPG4YqFrPZhwwOYc_lvdZnUSRg3WKoYB7WeGmsgJGJgt7YqZinbZaTqOpyNbXuRgfuGSRHbG8iqtF5eU9xC2xUATcInrM75841TJSTQ","e":"AQAB"}]}'
     ports:
       - "3000:3000"
     networks:
@@ -83,11 +89,11 @@ services:
       - "3001:3000"
     networks:
       - smart-campus
+
 volumes:
   postgres_data:
   etcd_data:
+
 networks:
   smart-campus:
     driver: bridge
-
-    
