@@ -29,6 +29,20 @@ Các khởi động :
 7. truy cập vào core thông qua các Port để test.
 
 
+Test Keycloak đã import vô chưa
+1. Chạy lệnh: docker compose logs -f keycloak
+2. Khi nào nó hiện dòng chữ Realm 'dxos' imported và Listening on: http://0.0.0.0:8080 thì mới là xong.
+
+
+Tạo user
+1. Đăng nhập vào keycloak với TK: admin MK: Admin123!
+2. Vào manage realm -> dxos -> user -> add user -> Đặt username
+3. Vào user vừa tạo -> credentials -> set password -> Đặt mật khẩu -> Tắt Temporary
+
+Kiểm thử luồng
+1. Vào nuxt
+2. Đăng nhập
+
 DATA: 
     PostgreSQL và etcd lưu ở volume của docker
     ở cuối của docker-compose mục volume

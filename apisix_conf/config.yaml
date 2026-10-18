@@ -156,7 +156,7 @@ nginx_config:
   event:
     worker_connections: 10620
 deployment:
-  config_provider: etcd
+  config_provider: yaml
   admin:
     admin_api_version: v3
     enable_admin_cors: true
@@ -172,7 +172,7 @@ deployment:
     - 127.0.0.0/24
     - 172.19.0.0/16
     - 0.0.0.0/0
-    admin_key_required: true
+    admin_key_required: false
   etcd:
     host:
     - http://etcd:2379
@@ -184,7 +184,7 @@ deployment:
     timeout: 30
   role: traditional
   role_traditional:
-    config_provider: etcd
+    config_provider: yaml
 plugins:
 - real-ip
 - ai
@@ -313,7 +313,7 @@ apisix:
   resolver_timeout: 5
   enable_server_tokens: true
   normalize_uri_like_servlet: false
-  enable_admin: true
+  enable_admin: false
   enable_http2: true
   proxy_mode: http
   proxy_cache:
