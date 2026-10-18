@@ -18,14 +18,14 @@
 
         <!-- Nút bên phải -->
         <div class="nav-actions">
-          <a href="" class="login-link">
+          <a href="#" @click.prevent="login" class="login-link">
           Log in
           </a>
-          <a href="" class="btn btn-signup">
+          <a href="#" class="btn btn-signup">
           Sign up
           </a>
         </div>
-      </div>
+      </div> 
     </header>
 
     <!-- ================= HERO SECTION ================= -->
@@ -67,7 +67,12 @@
 </template>
 
 <script setup>
-// Không cần xử lý logic chức năng
+const { $keycloak } = useNuxtApp()
+
+const login = async () => {
+  // Gọi thẳng sang Keycloak, đăng nhập xong thì trả về /profile
+  await $keycloak.login({ redirectUri: window.location.origin + '/profile' })
+}
 </script>
 
 <style scoped>

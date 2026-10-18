@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Cài dependency
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copy toàn bộ source code
 COPY . .
