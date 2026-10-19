@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 CTU-HKT. All rights reserved.
+
 import Keycloak from 'keycloak-js'
 
 export default defineNuxtPlugin(async (nuxtApp) => {

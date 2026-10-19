@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: MIT
+  Copyright (c) 2026 CTU-HKT. All rights reserved.
+-->
+
 <template>
   <div class="redirect-container">
     <div class="redirect-card">

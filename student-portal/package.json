@@ -2,6 +2,8 @@
   "name": "student-portal",
   "private": true,
   "type": "module",
+  "license": "MIT",
+  "author": "CTU-HKT",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
