@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 CTU-HKT. All rights reserved.
+
 routes:
   - id: 1
     uri: "/api/*"

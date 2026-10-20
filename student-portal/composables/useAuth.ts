@@ -26,10 +26,20 @@ export const useAuth = () => {
 
   const isStudent = computed(() => authUser.value?.role === 'student')
 
-  // Hàm Đăng xuất
-  const logout = () => {
+  // Hàm Đăng xuất triệt để cả Cookie lẫn Keycloak SSO
+  const logout = async () => {
     authUser.value = null
     token.value = null
+
+    // Gọi Keycloak logout để hủy session trên Keycloak Server
+    if (typeof window !== 'undefined') {
+      const nuxtApp = useNuxtApp() as any
+      if (nuxtApp.$keycloak && nuxtApp.$keycloak.authenticated) {
+        await nuxtApp.$keycloak.logout({ redirectUri: window.location.origin })
+        return
+      }
+    }
+
     navigateTo('/')
   }
 
