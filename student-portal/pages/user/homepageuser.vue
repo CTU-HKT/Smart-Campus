@@ -332,112 +332,67 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
-const { user, switchRole, logout } = useAuth()
+const { $keycloak } = useNuxtApp()
 
-// Quản lý Tab hiện tại
+// State
+const user = ref({ name: '...' })
+const userRecords = ref([])
 const currentTab = ref('home')
 const activeModal = ref(null)
 
-// Tiêu đề tương ứng của từng tab
-const currentTabTitle = computed(() => {
-  switch (currentTab.value) {
-    case 'home': return 'Home / Dịch vụ sinh viên'
-    case 'records': return 'Hồ sơ đã nộp'
-    case 'notifications': return 'Thông báo'
-    case 'settings': return 'Cài đặt'
-    default: return 'Home'
+// Gọi API lấy đơn từ (RLS bên DB sẽ tự lọc chỉ trả về đơn của user này)
+const fetchMyRecords = async () => {
+  if (!$keycloak.authenticated) return
+  try {
+    // Gọi qua APISIX cổng 9080
+    const data = await $fetch('http://localhost:9080/api/applications', {
+      headers: { Authorization: `Bearer ${$keycloak.token}` }
+    })
+    
+    // Chuyển đổi dữ liệu từ DB sang giao diện
+    userRecords.value = data.map(item => ({
+      id: item.id.substring(0, 8),
+      title: item.application_type,
+      date: new Date(item.created_at).toLocaleDateString('vi-VN'),
+      status: item.status === 'pending' ? 'Đang xử lý' : 'Đã duyệt',
+      statusClass: item.status === 'pending' ? 'status-pending' : 'status-completed',
+      department: 'Phòng Đào tạo'
+    }))
+  } catch (error) {
+    console.error('Lỗi lấy đơn từ:', error)
   }
-})
+}
 
-// Chữ cái đầu của tên người dùng
-const userInitial = computed(() => {
-  const name = user.value?.name || 'A'
-  return name.charAt(0).toUpperCase()
-})
-
-// Hiển thị ngày hôm nay
-const currentDateString = computed(() => {
-  return new Date().toLocaleDateString('vi-VN', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric'
-  })
-})
-
-// Dữ liệu hồ sơ mẫu của sinh viên
-// const userRecords = ref([
-//   {
-//     id: 'HS-2026-081',
-//     title: 'Đơn xin miễn giảm học phí học kỳ I',
-//     department: 'Phòng Công tác Sinh viên',
-//     date: '10/10/2026',
-//     status: 'Đang xử lý',
-//     statusClass: 'status-pending'
-//   },
-//   {
-//     id: 'HS-2026-042',
-//     title: 'Đăng ký giấy chứng nhận sinh viên tạm thời',
-//     department: 'Phòng Đào tạo',
-//     date: '02/10/2026',
-//     status: 'Đã hoàn thành',
-//     statusClass: 'status-completed'
-//   }
-// ])
-
-// // Dữ liệu thông báo mẫu
-// const notifications = ref([
-//   {
-//     id: 1,
-//     title: 'Hồ sơ HS-2026-042 đã được duyệt',
-//     desc: 'Giấy chứng nhận sinh viên của bạn đã sẵn sàng tại Phòng Đào tạo.',
-//     time: '2 giờ trước'
-//   },
-//   {
-//     id: 2,
-//     title: 'Nhắc nhở nộp đơn bảo lưu / gia hạn',
-//     desc: 'Hạn chót tiếp nhận đơn xin gia hạn học kỳ 1 kết thúc vào ngày 20/10/2026.',
-//     time: 'Hôm qua'
-//   },
-//   {
-//     id: 3,
-//     title: 'Cập nhật hệ thống Smart Campus DX-OS',
-//     desc: 'Cổng dịch vụ số được tích hợp SSO Keycloak và APISIX Gateway.',
-//     time: '3 ngày trước'
-//   },
-//   {
-//     id: 4,
-//     title: 'Chào mừng bạn đến với hệ thống mới',
-//     desc: 'Tài khoản của bạn đã được kích hoạt thành công.',
-//     time: '5 ngày trước'
-//   }
-// ])
-
-// Chọn dịch vụ từ 2 box
-const handleSelectService = (serviceType) => {
-  if (serviceType === 'nop-don') {
-    activeModal.value = {
-      title: '1. Nộp Đơn Trực Tuyến',
-      desc: 'Hệ thống sẽ chuyển bạn sang mẫu đơn điện tử gửi Ban Giám hiệu, Phòng Đào tạo hoặc Cố vấn học tập.'
-    }
+onMounted(async () => {
+  if ($keycloak.authenticated) {
+    const parsed = $keycloak.tokenParsed || {}
+    user.value = { name: parsed.preferred_username || 'Sinh viên' }
+    await fetchMyRecords()
   } else {
-    activeModal.value = {
-      title: '2. Đăng Ký (Nhận giấy của trường)',
-      desc: 'Hệ thống sẽ chuyển bạn sang danh mục các loại văn bằng, chứng nhận cần cấp phát.'
-    }
+    navigateTo('/')
+  }
+})
+
+// Các hàm UI giữ nguyên
+const logout = () => $keycloak.logout({ redirectUri: window.location.origin })
+const userInitial = computed(() => (user.value?.name || 'A').charAt(0).toUpperCase())
+const currentDateString = computed(() => new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'numeric', day: 'numeric' }))
+const currentTabTitle = computed(() => {
+  const titles = { home: 'Home / Dịch vụ sinh viên', records: 'Hồ sơ đã nộp', notifications: 'Thông báo', settings: 'Cài đặt' }
+  return titles[currentTab.value] || 'Home'
+})
+
+const handleSelectService = (serviceType) => {
+  activeModal.value = {
+    title: serviceType === 'nop-don' ? '1. Nộp Đơn Trực Tuyến' : '2. Đăng Ký (Nhận giấy)',
+    desc: 'Hệ thống sẽ chuyển bạn sang mẫu đơn điện tử.'
   }
 }
-
-const confirmCreateRecord = () => {
-  activeModal.value = null
-  alert('Loading...')
-}
-
-const viewDetail = (record) => {
-  alert(`Chi tiết hồ sơ: ${record.title} (${record.id}) - Trạng thái: ${record.status}`)
-}
+const confirmCreateRecord = () => { activeModal.value = null; alert('Đang phát triển...') }
+const viewDetail = (record) => alert(`Chi tiết: ${record.title} (${record.id}) - ${record.status}`)
+const switchRole = () => alert('Không thể tự đổi quyền!')
 </script>
 
 <style scoped>

@@ -339,44 +339,75 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
-const { user, logout } = useAuth()
+const { $keycloak } = useNuxtApp()
 
-// Chế độ xem: 'queue' (Hàng đợi) hoặc 'sla' (Thống kê & SLA)
+const user = ref({ name: '...' })
+const applications = ref([])
 const activeTab = ref('queue')
-const timeFrame = ref('day')
 
-// Bộ lọc
+// Gọi API lấy toàn bộ đơn từ (Dành cho Admin)
+const fetchAllApplications = async () => {
+  if (!$keycloak.authenticated) return
+  try {
+    // Gọi API. Vì là admin, RLS bên Postgres sẽ trả về toàn bộ data.
+    const data = await $fetch('http://localhost:9080/api/applications', {
+      headers: { Authorization: `Bearer ${$keycloak.token}` }
+    })
+    
+    applications.value = data.map(item => ({
+      id: item.id.substring(0, 8),
+      code: `REQ-${item.id.substring(0, 6)}`,
+      studentName: item.user_id.substring(0, 8), // Tạm hiện ID, sau này JOIN bảng profiles để lấy tên
+      mssv: 'SV001',
+      docTitle: item.application_type,
+      submittedAt: new Date(item.created_at).toLocaleDateString('vi-VN'),
+      status: item.status === 'pending' ? 'Chờ duyệt' : 'Đã ký số',
+      statusCode: item.status === 'pending' ? 'pending' : 'completed',
+      domain: 'Hành chính số',
+      docTag: 'Dịch vụ đơn từ'
+    }))
+  } catch (error) {
+    console.error('Lỗi Admin lấy dữ liệu:', error)
+  }
+}
+
+onMounted(async () => {
+  if ($keycloak.authenticated) {
+    const roles = $keycloak.tokenParsed?.realm_access?.roles || []
+    // Bảo vệ trang Admin: Nếu không phải admin thì đuổi về
+    if (!roles.includes('teacher')) {
+      navigateTo('/user/homepageuser')
+      return
+    }
+    user.value = { name: $keycloak.tokenParsed?.preferred_username }
+    await fetchAllApplications()
+  } else {
+    navigateTo('/')
+  }
+})
+
+// Các hàm UI khác giữ nguyên
+const logout = () => $keycloak.logout({ redirectUri: window.location.origin })
 const searchQuery = ref('')
 const filterDomain = ref('all')
 const filterDocType = ref('all')
 const filterStatus = ref('all')
-
-// MẢNG HỒ SƠ: ĐỂ TRỐNG TOÀN BỘ THEO YÊU CẦU CỦA BẠN (CHƯA CÓ DỮ LIỆU)
-const applications = ref([])
-
-// Các chỉ số tính toán từ mảng hồ sơ (sẽ tự động = 0)
 const pendingCount = computed(() => applications.value.filter(a => a.status === 'Chờ duyệt').length)
 const approvedCount = computed(() => applications.value.filter(a => a.status === 'Đã ký số').length)
-const needMoreCount = computed(() => applications.value.filter(a => a.status === 'Cần bổ sung').length)
-const rejectedCount = computed(() => applications.value.filter(a => a.status === 'Đã từ chối').length)
-
-// Bộ lọc danh sách hồ sơ
+const needMoreCount = computed(() => 0)
+const rejectedCount = computed(() => 0)
 const filteredApplications = computed(() => {
   return applications.value.filter(item => {
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase().trim()
-      const match = item.code.toLowerCase().includes(q) || item.studentName.toLowerCase().includes(q) || item.mssv.includes(q)
-      if (!match) return false
-    }
+    if (searchQuery.value && !item.code.toLowerCase().includes(searchQuery.value.toLowerCase()) && !item.studentName.toLowerCase().includes(searchQuery.value.toLowerCase())) return false
     if (filterDomain.value !== 'all' && item.domain !== filterDomain.value) return false
     if (filterDocType.value !== 'all' && item.docTitle !== filterDocType.value) return false
     if (filterStatus.value !== 'all' && item.status !== filterStatus.value) return false
     return true
   })
 })
-
+const timeFrame = ref('day')
 const daysList = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 </script>
 

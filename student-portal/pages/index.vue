@@ -75,8 +75,8 @@
 const { $keycloak } = useNuxtApp()
 
 const login = async () => {
-  // Gọi thẳng sang Keycloak, đăng nhập xong thì trả về /profile
-  await $keycloak.login({ redirectUri: window.location.origin + '/profile' })
+  // Gọi thẳng sang Keycloak, đăng nhập xong thì trả về /callback
+  await $keycloak.login({ redirectUri: window.location.origin + '/callback' })
 }
 </script>
 

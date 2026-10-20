@@ -113,6 +113,57 @@ Backend của hệ thống được thiết kế theo kiến trúc Microservices
 
 ### 🔨 Cài Đặt
 
+### Bước 1: Thiết lập biến môi trường (`.env`)
+
+1. Mở terminal tại thư mục gốc của dự án (`Smart-Campus`) và tạo file `.env` từ file mẫu:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Tạo chuỗi khóa ngẫu nhiên 32-byte cho `ADMIN_KEY`:
+   - **Windows (PowerShell):**
+     ```powershell
+     $bytes = New-Object byte[] 32; [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); ($bytes | ForEach-Object { $_.ToString('x2') }) -join ''
+     ```
+   - **macOS / Linux:**
+     ```bash
+     openssl rand -hex 32
+     ```
+
+3. Mở file `.env` vừa tạo và dán chuỗi khóa vừa nhận được vào sau biến `ADMIN_KEY=`:
+   ```env
+   ADMIN_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
+
+---
+
+### Bước 2: Khởi chạy hệ thống
+
+Chạy lệnh sau để build và khởi động ngầm 6 container dịch vụ của hệ thống:
+
+```bash
+docker compose up -d --build
+```
+
+---
+
+### Bước 3: Kiểm tra trạng thái hoạt động
+
+1. **Kiểm tra trạng thái các container** (Đảm bảo cả 6 container đều ở trạng thái `Up`):
+
+   ```bash
+   docker ps
+   ```
+
+2. **Kiểm tra quá trình khởi tạo dữ liệu của Keycloak**:
+   ```bash
+   docker compose logs -f keycloak
+   ```
+   > 💡 **Lưu ý:** Chờ đến khi màn hình xuất hiện dòng `Realm 'dxos' imported` và `Listening on: http://0.0.0.0:8080` thì nhấn `Ctrl + C` để thoát chế độ xem log.
+
+---
+
 #### PORT BINDING
 
 Sau khi khởi chạy thành công, các dịch vụ sẽ hoạt động trên các cổng sau:
