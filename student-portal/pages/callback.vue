@@ -26,53 +26,22 @@
 import { ref, onMounted } from 'vue'
 
 const { $keycloak } = useNuxtApp()
-const { user, token } = useAuth()
-
 const isAuthenticated = ref(false)
 const isLoading = ref(true)
 const userName = ref('')
 
 onMounted(async () => {
-  // Chờ 1 chút để plugin $keycloak hoàn tất khởi tạo nếu cần
-  let retries = 0
-  while (!$keycloak && retries < 10) {
-    await new Promise(r => setTimeout(r, 100))
-    retries++
-  }
-
-  isAuthenticated.value = $keycloak?.authenticated || false
-
-  if (isAuthenticated.value) {
+  if ($keycloak.authenticated) {
+    isAuthenticated.value = true
     const parsed = $keycloak.tokenParsed || {}
     userName.value = parsed.preferred_username || parsed.name || 'Người dùng'
 
-    // 1. Lưu token vào cookie thông qua useAuth()
-    token.value = $keycloak.token
-
-    // 2. Đọc role từ Keycloak Realm Roles
+    // Đọc role thật từ Keycloak
     const realmRoles = parsed.realm_access?.roles || []
-    let assignedRole = 'student'
-
-    if (realmRoles.includes('admin')) {
-      assignedRole = 'admin'
-    } else if (realmRoles.includes('teacher') || realmRoles.includes('giaovien')) {
-      assignedRole = 'teacher'
-    } else {
-      assignedRole = 'student'
-    }
-
-    // 3. Lưu thông tin người dùng vào cookie auth_user để các trang Homepage dùng được
-    user.value = {
-      id: parsed.sub,
-      name: parsed.name || parsed.preferred_username || 'Người dùng',
-      username: parsed.preferred_username || parsed.sub,
-      email: parsed.email || '',
-      role: assignedRole
-    }
-
-    // 4. Chuyển hướng ngay về Homepage tương ứng
+    
+    // Phân loại và chuyển hướng
     setTimeout(() => {
-      if (assignedRole === 'admin' || assignedRole === 'teacher') {
+      if (realmRoles.includes('teacher')) {
         navigateTo('/admin/homepageadmin')
       } else {
         navigateTo('/user/homepageuser')
