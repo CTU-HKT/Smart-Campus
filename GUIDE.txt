@@ -1,51 +1,76 @@
-Keycloak	8080	http://localhost:8080
-APISIX	9080	http://localhost:9080
-APISIX Admin API	http://localhost:9180	    Chỉ dùng để cấu hình APISIX
-PostgREST	3000	http://localhost:3000
-Student Portal	3001	http://localhost:3001
-PostgreSQL	http://localhost:5432	            Chỉ dùng nội bộ Docker
-etcd	http://localhost:2379	                Chỉ dùng nội bộ Docker
+================================================================================
+                    HƯỚNG DẪN CÀI ĐẶT VÀ VẬN HÀNH SMART-CAMPUS
+================================================================================
 
-Các khởi động : 
-1. Vào folder chính Smart-campus
-2. Chạy lệnh 
-    -- WINDOWS : 
-    $bytes = New-Object byte[] 32
-    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-    $rng.GetBytes($bytes)
-    ($bytes | ForEach-Object { $_.ToString('x2') }) -join ''
-    $rng.Dispose()
-    
-    -- macOS/LINUX : 
-    openssl rand -hex 32
+--------------------------------------------------------------------------------
+MỤC 1: CÀI ĐẶT VÀ KHỞI ĐỘNG HỆ THỐNG (LẦN ĐẦU CHẠY)
+--------------------------------------------------------------------------------
 
-    => Sẽ ra 1 chuỗi key.
-    Copy key đó.
-3. chạy lệnh
-    cp .env.example .env
-4. Dán chuỗi key vào sau (ADMIN_Key=)
-5. docker compose up -d (để pull các images về máy)
-6. docker ps (để check các container đang chạy) đủ 6 container là ok
-7. truy cập vào core thông qua các Port để test.
+1. Chuẩn bị biến môi trường (.env):
+   - Mở terminal tại thư mục gốc của dự án (Smart-Campus).
+   - Tạo file .env từ file mẫu:
+       cp .env.example .env
+   - Tạo chuỗi khóa ngẫu nhiên 32-byte (ADMIN_KEY):
+       + Trên Windows (PowerShell):
+         $bytes = New-Object byte[] 32; [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); ($bytes | ForEach-Object { $_.ToString('x2') }) -join ''
+       + Trên macOS / Linux:
+         openssl rand -hex 32
+   - Mở file .env vừa tạo, dán chuỗi key vào sau ADMIN_KEY=
+     (Ví dụ: ADMIN_KEY=4a8f9c1b...)
 
+2. Khởi chạy toàn bộ hệ thống:
+   - Chạy lệnh build và khởi động 6 container dịch vụ ngầm:
+       docker compose up -d --build
 
-Test Keycloak đã import vô chưa
-1. Chạy lệnh: docker compose logs -f keycloak
-2. Khi nào nó hiện dòng chữ Realm 'dxos' imported và Listening on: http://0.0.0.0:8080 thì mới là xong.
+3. Kiểm tra trạng thái hoạt động:
+   - Kiểm tra danh sách container (đảm bảo đủ 6 container ở trạng thái Up):
+       docker ps
+   - Kiểm tra log Keycloak đã import xong dữ liệu Realm:
+       docker compose logs -f keycloak
+     (Chờ đến khi xuất hiện dòng: Realm 'dxos' imported và Listening on: http://0.0.0.0:8080 thì nhấn Ctrl+C để thoát log).
 
-
-Tạo user
-1. Đăng nhập vào keycloak với TK: admin MK: Admin123!
-2. Vào manage realm -> dxos -> user -> add user -> Đặt username
-3. Vào user vừa tạo -> credentials -> set password -> Đặt mật khẩu -> Tắt Temporary
-
-Kiểm thử luồng
-1. Vào nuxt
-2. Đăng nhập
-
-DATA: 
-    PostgreSQL và etcd lưu ở volume của docker
-    ở cuối của docker-compose mục volume
+4. Danh sách cổng truy cập dịch vụ (Port Bindings):
+   - Student Portal : http://localhost:3001  (Giao diện Web sinh viên & cán bộ)
+   - Keycloak IAM   : http://localhost:8080  (Trang quản trị định danh SSO)
+   - APISIX Gateway : http://localhost:9080  (Cổng API Gateway tập trung)
+   - PostgREST      : http://localhost:3000  (RESTful API Engine)
+   - PostgreSQL     : localhost:5432        (Cơ sở dữ liệu nội bộ Docker)
+   - etcd           : localhost:2379        (Lưu trữ phân tán APISIX nội bộ)
 
 
-FINAL COMMIT (CHANGING TO MAIN ACCOUNT)
+--------------------------------------------------------------------------------
+MỤC 2: QUẢN TRỊ, VẬN HÀNH VÀ CẬP NHẬT
+--------------------------------------------------------------------------------
+
+1. Cập nhật khi có thay đổi mã nguồn / cấu hình:
+   - Khi chỉnh sửa code giao diện (thư mục student-portal/):
+       docker compose up -d --build student-portal
+   - Khi chỉnh sửa cấu hình APISIX Gateway (apisix_conf/apisix.yaml):
+       docker compose restart apisix
+   - Khi chỉnh sửa cấu hình Keycloak (keycloak/dxos-realm.json):
+       docker compose restart keycloak
+
+2. Reset cơ sở dữ liệu (Database):
+   - Khi muốn xóa sạch dữ liệu cũ và nạp lại script từ database/init-scripts/:
+       docker compose down -v
+       docker compose up -d
+
+3. Quản trị tài khoản người dùng trên Keycloak:
+   - Đăng nhập Keycloak Admin Console tại: http://localhost:8080
+     + Tài khoản : admin
+     + Mật khẩu  : Admin123!
+    - Tài khoản test : 
+        student1 123
+        student2 123
+        teacher1 123
+    - Chọn Realm: Chuyển sang realm "dxos" (ở góc trên bên trái).
+    - Thêm tài khoản mới:
+     + Vào menu Users -> Nhấn "Add user" -> Điền Username, Email, First name, Last name -> Save.
+     + Chuyển sang tab "Credentials" -> Nhấn "Set password" -> Nhập mật khẩu mới -> TẮT mục "Temporary" -> Save.
+     + Chuyển sang tab "Role mapping" -> Gán role phù hợp (ví dụ: student hoặc admin).
+
+4. Kiểm thử luồng hoạt động ứng dụng:
+   - Truy cập http://localhost:3001 (Student Portal).
+   - Nhấn Đăng nhập -> Hệ thống chuyển hướng qua Keycloak SSO.
+   - Nhập tài khoản vừa tạo để đăng nhập -> Hệ thống tự động điều hướng về đúng trang giao diện theo quyền (User Portal hoặc Admin Workbench).
+================================================================================
