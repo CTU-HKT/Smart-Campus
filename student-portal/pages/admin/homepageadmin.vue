@@ -12,19 +12,19 @@
           <NuxtLink to="/" class="logo">
             <span class="logo-bold">Smart</span><span>Campus</span>
           </NuxtLink>
-          <span class="brand-badge">Admin</span>
+          <span class="brand-badge">Teacher</span>
         </div>
 
         <!-- Thông tin cán bộ & trạng thái chữ ký số -->
-        <div class="officer-info">
+        <NuxtLink to="/info" class="officer-info" title="Xem thông tin cá nhân">
           <span class="officer-label">Cán bộ thẩm định:</span>
-          <span class="officer-name">{{ user?.name || 'ThS. Trần Phương Thảo' }}</span>
+          <span class="officer-name">{{ user?.name || 'Cán bộ' }}</span>
           <span class="status-dot-separator">·</span>
           <span class="signature-tag">
             <span class="green-dot"></span>
-            Chữ ký số đã kết nối
+            Hồ sơ & Chữ ký số
           </span>
-        </div>
+        </NuxtLink>
 
         <!-- Menu chuyển đổi 2 chế độ xem (Hàng đợi & SLA) + Nút Đăng xuất -->
         <div class="nav-actions">
@@ -381,7 +381,22 @@ onMounted(async () => {
       navigateTo('/user/homepageuser')
       return
     }
-    user.value = { name: $keycloak.tokenParsed?.preferred_username }
+
+    const sub = $keycloak.tokenParsed?.sub
+    // Lấy tên thật từ database
+    try {
+      const profileData = await $fetch(`http://localhost:9080/api/profiles?user_id=eq.${sub}`, {
+        headers: { Authorization: `Bearer ${$keycloak.token}` }
+      })
+      if (profileData?.[0]?.full_name) {
+        user.value = { name: profileData[0].full_name }
+      } else {
+        user.value = { name: $keycloak.tokenParsed?.name || $keycloak.tokenParsed?.preferred_username || 'Cán bộ' }
+      }
+    } catch {
+      user.value = { name: $keycloak.tokenParsed?.name || $keycloak.tokenParsed?.preferred_username || 'Cán bộ' }
+    }
+
     await fetchAllApplications()
   } else {
     navigateTo('/')
@@ -480,6 +495,13 @@ const daysList = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
   gap: 8px;
   font-size: 0.9rem;
   color: #64748b;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.officer-info:hover {
+  opacity: 0.8;
 }
 
 .officer-name {

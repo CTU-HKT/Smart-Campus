@@ -80,13 +80,15 @@
 
       <!-- 3. Khu vực tài khoản Sinh viên ở đáy Sidebar -->
       <div class="sidebar-user">
-        <div class="user-avatar">
-          {{ userInitial }}
-        </div>
-        <div class="user-info">
-          <div class="user-name">{{ user?.name || '...' }}</div>
-          <div class="user-role">Sinh viên</div>
-        </div>
+        <NuxtLink to="/info" class="user-profile-click" title="Xem thông tin tài khoản">
+          <div class="user-avatar">
+            {{ userInitial }}
+          </div>
+          <div class="user-info">
+            <div class="user-name">{{ user?.name || '...' }}</div>
+            <div class="user-role">Sinh viên · Xem hồ sơ</div>
+          </div>
+        </NuxtLink>
         <button @click="logout" class="btn-logout" title="Đăng xuất">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -280,26 +282,20 @@
       <!-- NỘI DUNG TAB SETTINGS -->
       <div v-else-if="currentTab === 'settings'" class="tab-content">
         <div class="tab-header">
-          <h2>Cài đặt tài khoản (Settings)</h2>
+          <h2>Cài đặt ứng dụng (Settings)</h2>
         </div>
         <div class="settings-card">
           <div class="setting-item">
             <div>
-              <strong>Họ và tên:</strong>
-              <p>{{ user?.name || '...' }}</p>
+              <strong>Thông báo xử lý đơn từ:</strong>
+              <p>Nhận thông báo khi cán bộ thẩm định ký số hoặc phê duyệt đơn</p>
             </div>
-            <button class="btn btn-outline-sm">Chỉnh sửa</button>
+            <span class="status-badge status-completed">Đang bật</span>
           </div>
           <div class="setting-item">
             <div>
-              <strong>Email sinh viên:</strong>
-              <p>{{ user?.email || 'student@ctu.edu.vn' }}</p>
-            </div>
-          </div>
-          <div class="setting-item">
-            <div>
-              <strong>Phân quyền hệ thống:</strong>
-              <p><span class="badge-role">ROLE_STUDENT</span></p>
+              <strong>Ngôn ngữ hệ thống:</strong>
+              <p>Tiếng Việt (Mặc định)</p>
             </div>
           </div>
         </div>
@@ -316,17 +312,6 @@
           <button @click="confirmCreateRecord" class="btn btn-black">Tiếp tục điền form</button>
         </div>
       </div>
-    </div>
-
-    <!-- THANH ROLE SWITCHER NỔI (Hỗ trợ test nhanh phân quyền) -->
-    <div class="floating-dev-switcher">
-      <span>Role: <strong>{{ user?.role || 'student' }}</strong></span>
-      <button @click="switchRole('admin'); navigateTo('/admin/homepageadmin')" title="Đổi sang Admin">
-        Sang Admin
-      </button>
-      <button @click="logout" class="btn-dev-logout">
-        Thoát
-      </button>
     </div>
   </div>
 </template>
@@ -368,7 +353,20 @@ const fetchMyRecords = async () => {
 onMounted(async () => {
   if ($keycloak.authenticated) {
     const parsed = $keycloak.tokenParsed || {}
-    user.value = { name: parsed.preferred_username || 'Sinh viên' }
+    const sub = parsed.sub
+    // Ưu tiên lấy tên đầy đủ từ database
+    try {
+      const profileData = await $fetch(`http://localhost:9080/api/profiles?user_id=eq.${sub}`, {
+        headers: { Authorization: `Bearer ${$keycloak.token}` }
+      })
+      if (profileData?.[0]?.full_name) {
+        user.value = { name: profileData[0].full_name }
+      } else {
+        user.value = { name: parsed.name || parsed.preferred_username || 'Sinh viên' }
+      }
+    } catch {
+      user.value = { name: parsed.name || parsed.preferred_username || 'Sinh viên' }
+    }
     await fetchMyRecords()
   } else {
     navigateTo('/')
@@ -392,7 +390,6 @@ const handleSelectService = (serviceType) => {
 }
 const confirmCreateRecord = () => { activeModal.value = null; alert('Đang phát triển...') }
 const viewDetail = (record) => alert(`Chi tiết: ${record.title} (${record.id}) - ${record.status}`)
-const switchRole = () => alert('Không thể tự đổi quyền!')
 </script>
 
 <style scoped>
@@ -527,6 +524,21 @@ const switchRole = () => alert('Không thể tự đổi quyền!')
   align-items: center;
   gap: 12px;
   background-color: #ffffff;
+}
+
+.user-profile-click {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.user-profile-click:hover {
+  opacity: 0.8;
 }
 
 .user-avatar {
@@ -990,40 +1002,6 @@ const switchRole = () => alert('Không thể tự đổi quyền!')
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-}
-
-/* Thanh nổi chuyển đổi Role */
-.floating-dev-switcher {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #ffffff;
-  padding: 8px 14px;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e2e8f0;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 0.82rem;
-  z-index: 100;
-}
-
-.floating-dev-switcher button {
-  padding: 4px 10px;
-  border-radius: 4px;
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
-  cursor: pointer;
-}
-
-.floating-dev-switcher button:hover {
-  background: #000000;
-  color: #ffffff;
-}
-
-.btn-dev-logout {
-  color: #ef4444;
 }
 
 /* ================= RESPONSIVE ================= */
