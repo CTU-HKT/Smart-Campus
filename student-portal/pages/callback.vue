@@ -35,18 +35,41 @@ onMounted(async () => {
     isAuthenticated.value = true
     const parsed = $keycloak.tokenParsed || {}
     userName.value = parsed.preferred_username || parsed.name || 'Người dùng'
-
-    // Đọc role thật từ Keycloak
+    const sub = parsed.sub
+    const token = $keycloak.token
     const realmRoles = parsed.realm_access?.roles || []
-    
-    // Phân loại và chuyển hướng
-    setTimeout(() => {
-      if (realmRoles.includes('teacher')) {
-        navigateTo('/admin/homepageadmin')
-      } else {
-        navigateTo('/user/homepageuser')
+    const isTeacher = realmRoles.includes('teacher')
+
+    try {
+      // Kiểm tra hồ sơ trong Database (Áp dụng cho CẢ Giáo viên và Sinh viên)
+      const data = await $fetch(`http://localhost:9080/api/profiles?user_id=eq.${sub}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const profile = Array.isArray(data) ? data[0] : null
+      // Nếu chưa có hồ sơ HOẶC thiếu các trường bắt buộc (mã định danh, họ tên, khoa/đơn vị)
+      const isIncomplete = !profile || !profile.student_code || !profile.faculty || !profile.major || !profile.date_of_birth || !profile.phone || !profile.full_name
+
+      if (isIncomplete) {
+        // Cả giáo viên lẫn sinh viên nếu chưa hoàn thiện hồ sơ đều phải qua bước này
+        return navigateTo('/complete-profile')
       }
-    }, 400)
+
+      // Đã đầy đủ hồ sơ -> Chuyển hướng về đúng giao diện theo Role
+      setTimeout(() => {
+        if (isTeacher) {
+          navigateTo('/admin/homepageadmin')
+        } else {
+          navigateTo('/user/homepageuser')
+        }
+      }, 400)
+    } catch (err) {
+      console.error('Lỗi khi kiểm tra thông tin hồ sơ:', err)
+      // Nếu có lỗi query (ví dụ chưa có profile), chuyển sang trang hoàn thiện hồ sơ
+      navigateTo('/complete-profile')
+    }
   } else {
     isLoading.value = false
   }

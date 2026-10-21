@@ -26,8 +26,8 @@
           <a href="#" @click.prevent="login" class="login-link">
           Log in
           </a>
-          <a href="#" class="btn btn-signup">
-          Sign up
+          <a href="#" @click.prevent="register" class="btn btn-signup">
+            Sign up
           </a>
         </div>
       </div> 
@@ -77,6 +77,10 @@ const { $keycloak } = useNuxtApp()
 const login = async () => {
   // Gọi thẳng sang Keycloak, đăng nhập xong thì trả về /callback
   await $keycloak.login({ redirectUri: window.location.origin + '/callback' })
+}
+// Đăng ký ở đây nè
+const register = async () => {
+  await $keycloak.register({ redirectUri: window.location.origin + '/callback' })
 }
 </script>
 

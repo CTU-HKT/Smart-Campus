@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(20),
+    date_of_birth DATE,
     faculty VARCHAR(100),
     major VARCHAR(100),
     updated_at TIMESTAMPTZ DEFAULT NOW()
