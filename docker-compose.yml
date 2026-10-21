@@ -90,6 +90,27 @@ services:
     networks:
       - smart-campus
 
+  flowable:
+    image: flowable/flowable-rest:6.8.0
+    container_name: smart-campus-flowable
+    depends_on:
+      - postgres
+    environment:
+      SERVER_PORT: 8081
+      #Cấu hình kết nối flowable với postgreSQL
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/flowable"
+      #Tài khoản để có thể dùng postgreSQL. Với điều kiện postgreSQL đã tạo vùng dữ liệu với tài khoản và mật khẩu như này
+      SPRING_DATASOURCE_USERNAME: flowable
+      SPRING_DATASOURCE_PASSWORD: flowable
+      #Tài khoản để cấu hình được flowable
+      FLOWABLE_REST_APP_ADMIN_USER_ID: admin
+      FLOWABLE_REST_APP_ADMIN_PASSWORD: admin
+    ports:
+      - "8081:8081"
+    networks:
+      - smart-campus
+
 volumes:
   postgres_data:
   etcd_data:
