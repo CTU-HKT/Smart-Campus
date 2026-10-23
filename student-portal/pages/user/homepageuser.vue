@@ -332,7 +332,7 @@ const fetchMyRecords = async () => {
   if (!$keycloak.authenticated) return
   try {
     // Gọi qua APISIX cổng 9080
-    const data = await $fetch('http://localhost:9080/api/applications', {
+    const data = await $fetch('http://localhost:9080/api/postgrest/applications', {
       headers: { Authorization: `Bearer ${$keycloak.token}` }
     })
     
@@ -356,7 +356,7 @@ onMounted(async () => {
     const sub = parsed.sub
     // Ưu tiên lấy tên đầy đủ từ database
     try {
-      const profileData = await $fetch(`http://localhost:9080/api/profiles?user_id=eq.${sub}`, {
+      const profileData = await $fetch(`http://localhost:9080/api/postgrest/profiles?user_id=eq.${sub}`, {
         headers: { Authorization: `Bearer ${$keycloak.token}` }
       })
       if (profileData?.[0]?.full_name) {
