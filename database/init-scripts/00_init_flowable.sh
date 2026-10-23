@@ -13,8 +13,8 @@ set -euo pipefail
 # 1. Cấu hình biến môi trường linh hoạt (Bảo mật Zero-Trust / Open Source Best Practice)
 # ------------------------------------------------------------------------------
 FLOWABLE_USER="${FLOWABLE_DB_USER:-flowable}"
-FLOWABLE_PASS="${FLOWABLE_DB_PASSWORD:-flowable_pass_2026}"
-FLOWABLE_DB="${FLOWABLE_DB_NAME:-flowable_db}"
+FLOWABLE_PASS="${FLOWABLE_DB_PASSWORD:-flowable}"
+FLOWABLE_DB="${FLOWABLE_DB_NAME:-flowable}"
 
 LOG_PREFIX="[DX-OS Init - Flowable]"
 

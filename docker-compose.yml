@@ -9,6 +9,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./database/init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartcampus -d smartcampus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - smart-campus
 
@@ -111,6 +117,32 @@ services:
     networks:
       - smart-campus
 
+  flyway:
+    image: flyway/flyway:11
+    restart: "no"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/smartcampus
+      FLYWAY_USER: smartcampus
+      FLYWAY_PASSWORD: smartcampus
+      FLYWAY_SCHEMAS: public
+      FLYWAY_DEFAULT_SCHEMA: public
+      FLYWAY_BASELINE_ON_MIGRATE: "false"
+      FLYWAY_CONNECT_RETRIES: "30"
+
+    volumes:
+      - ./database/migrations:/flyway/sql:ro
+
+    command: migrate
+
+    networks:
+      - smart-campus
+
+
 volumes:
   postgres_data:
   etcd_data:
@@ -118,3 +150,5 @@ volumes:
 networks:
   smart-campus:
     driver: bridge
+
+  
