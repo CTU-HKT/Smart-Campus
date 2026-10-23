@@ -172,7 +172,7 @@ onMounted(async () => {
   // Nếu user đã có bản ghi một phần trong DB thì fetch lên để điền sẵn
   try {
     const sub = parsed.sub
-    const res = await $fetch(`http://localhost:9080/api/profiles?user_id=eq.${sub}`, {
+    const res = await $fetch(`http://localhost:9080/api/postgrest/profiles?user_id=eq.${sub}`, {
       headers: {
         Authorization: `Bearer ${$keycloak.token}`
       }
@@ -207,7 +207,7 @@ const handleSubmit = async () => {
     const token = $keycloak.token
 
     // Bước 1: Đảm bảo có record trong bảng public.users (do profiles có Foreign Key tới users)
-    await fetch('http://localhost:9080/api/users', {
+    await fetch('http://localhost:9080/api/postgrest/users', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -218,7 +218,7 @@ const handleSubmit = async () => {
     })
 
     // Bước 2: Upsert thông tin vào bảng public.profiles
-    const response = await fetch('http://localhost:9080/api/profiles', {
+    const response = await fetch('http://localhost:9080/api/postgrest/profiles', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

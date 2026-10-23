@@ -3,11 +3,11 @@
 
 routes:
   - id: 1
-    uri: "/api/*"
+    uri: "/api/postgrest/*"
     plugins:
       proxy-rewrite:
         regex_uri:
-          - "^/api/(.*)"
+          - "^/api/postgrest/(.*)"
           - "/$1"
       openid-connect:
         client_id: "portal"
@@ -24,4 +24,27 @@ routes:
       type: roundrobin
       nodes:
         "postgrest:3000": 1
+
+  - id: 2
+    uri: "/api/flowable/*"
+    plugins:
+      proxy-rewrite:
+        regex_uri:
+          - "^/api/flowable/(.*)"
+          - "/$1"
+      openid-connect:
+        client_id: "portal"
+        client_secret: ""
+        discovery: "http://keycloak:8080/realms/dxos/.well-known/openid-configuration"
+        bearer_only: true
+        use_jwks: true
+        realm: "dxos"
+      cors:
+        allow_origins: "*"
+        allow_methods: "*"
+        allow_headers: "*"
+    upstream:
+      type: roundrobin
+      nodes:
+        "flowable:8081": 1
 #END

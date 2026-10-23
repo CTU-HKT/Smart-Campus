@@ -195,7 +195,7 @@ onMounted(async () => {
 
   try {
     // Lấy thông tin từ bảng public.profiles trong PostgreSQL
-    const res = await $fetch(`http://localhost:9080/api/profiles?user_id=eq.${sub}`, {
+    const res = await $fetch(`http://localhost:9080/api/postgrest/profiles?user_id=eq.${sub}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }

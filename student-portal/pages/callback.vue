@@ -42,7 +42,7 @@ onMounted(async () => {
 
     try {
       // Kiểm tra hồ sơ trong Database (Áp dụng cho CẢ Giáo viên và Sinh viên)
-      const data = await $fetch(`http://localhost:9080/api/profiles?user_id=eq.${sub}`, {
+      const data = await $fetch(`http://localhost:9080/api/postgrest/profiles?user_id=eq.${sub}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
