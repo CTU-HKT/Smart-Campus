@@ -77,7 +77,8 @@ services:
     environment:
       # Dùng user authenticator (đã tạo trong init.sql)
       PGRST_DB_URI: postgres://authenticator:secretpassword@postgres:5432/smartcampus
-      PGRST_DB_SCHEMAS: public
+      # Expose cả schema app và public (app làm schema mặc định)
+      PGRST_DB_SCHEMAS: app,public
       # Dùng role web_anon (đã tạo trong init.sql)
       PGRST_DB_ANON_ROLE: web_anon
       # Cục JWKS lấy từ Keycloak để verify token
@@ -131,7 +132,7 @@ services:
       FLYWAY_PASSWORD: smartcampus
       FLYWAY_SCHEMAS: public
       FLYWAY_DEFAULT_SCHEMA: public
-      FLYWAY_BASELINE_ON_MIGRATE: "false"
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
       FLYWAY_CONNECT_RETRIES: "30"
 
     volumes:

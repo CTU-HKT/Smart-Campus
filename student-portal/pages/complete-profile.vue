@@ -172,19 +172,30 @@ onMounted(async () => {
   // Nếu user đã có bản ghi một phần trong DB thì fetch lên để điền sẵn
   try {
     const sub = parsed.sub
-    const res = await $fetch(`http://localhost:9080/api/postgrest/profiles?user_id=eq.${sub}`, {
+    const endpoint = isTeacher.value
+      ? `http://localhost:9080/api/postgrest/can_bo?keycloak_sub=eq.${sub}`
+      : `http://localhost:9080/api/postgrest/sinh_vien?keycloak_sub=eq.${sub}`
+
+    const res = await $fetch(endpoint, {
       headers: {
         Authorization: `Bearer ${$keycloak.token}`
       }
     })
     const existing = res?.[0]
     if (existing) {
-      if (existing.student_code) userCode.value = existing.student_code
-      if (existing.full_name) fullName.value = existing.full_name
-      if (existing.faculty) faculty.value = existing.faculty
-      if (existing.major) major.value = existing.major
-      if (existing.phone) phone.value = existing.phone
-      if (existing.date_of_birth) dateOfBirth.value = existing.date_of_birth
+      if (isTeacher.value) {
+        if (existing.ma_cb) userCode.value = existing.ma_cb
+        if (existing.ho_ten) fullName.value = existing.ho_ten
+        if (existing.don_vi) faculty.value = existing.don_vi
+        if (existing.chuc_vu) major.value = existing.chuc_vu
+      } else {
+        if (existing.ma_sv) userCode.value = existing.ma_sv
+        if (existing.ho_ten) fullName.value = existing.ho_ten
+        if (existing.khoa) faculty.value = existing.khoa
+        if (existing.lop) major.value = existing.lop
+        if (existing.sdt) phone.value = existing.sdt
+        if (existing.ngay_sinh) dateOfBirth.value = existing.ngay_sinh
+      }
     }
   } catch (err) {
     console.warn('Chưa có dữ liệu hồ sơ cũ:', err)
@@ -206,36 +217,38 @@ const handleSubmit = async () => {
     const sub = parsed.sub
     const token = $keycloak.token
 
-    // Bước 1: Đảm bảo có record trong bảng public.users (do profiles có Foreign Key tới users)
-    await fetch('http://localhost:9080/api/postgrest/users', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=ignore-duplicates'
-      },
-      body: JSON.stringify({ user_id: sub })
-    })
+    const endpoint = isTeacher.value
+      ? 'http://localhost:9080/api/postgrest/can_bo'
+      : 'http://localhost:9080/api/postgrest/sinh_vien'
 
-    // Bước 2: Upsert thông tin vào bảng public.profiles
-    const response = await fetch('http://localhost:9080/api/postgrest/profiles', {
+    const payload = isTeacher.value
+      ? {
+          ma_cb: userCode.value.trim(),
+          keycloak_sub: sub,
+          ho_ten: fullName.value.trim(),
+          chuc_vu: major.value.trim() || 'Giảng viên',
+          don_vi: faculty.value.trim(),
+          email: email.value.trim()
+        }
+      : {
+          ma_sv: userCode.value.trim(),
+          keycloak_sub: sub,
+          ho_ten: fullName.value.trim(),
+          ngay_sinh: dateOfBirth.value || '2003-01-01',
+          lop: major.value.trim(),
+          khoa: faculty.value.trim(),
+          email: email.value.trim(),
+          sdt: phone.value.trim() || null
+        }
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates'
       },
-      body: JSON.stringify({
-        user_id: sub,
-        student_code: userCode.value.trim(),
-        full_name: fullName.value.trim(),
-        email: email.value.trim(),
-        phone: phone.value.trim() || null,
-        date_of_birth: dateOfBirth.value || null,
-        faculty: faculty.value.trim(),
-        major: major.value.trim(),
-        updated_at: new Date().toISOString()
-      })
+      body: JSON.stringify(payload)
     })
 
     if (!response.ok) {
@@ -266,199 +279,32 @@ const handleSubmit = async () => {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-.complete-wrapper {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8fafc;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: 40px 20px;
-}
-
-.complete-card {
-  width: 100%;
-  max-width: 540px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 36px 32px;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-}
-
-.card-header {
-  margin-bottom: 24px;
-}
-
-.brand-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.logo-bold {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #000000;
-}
-
-.brand-row span:nth-child(2) {
-  font-size: 1.25rem;
-  color: #000000;
-}
-
-.role-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background-color: #f1f5f9;
-  color: #475569;
-}
-
-.role-badge.teacher-badge {
-  background-color: #000000;
-  color: #ffffff;
-}
-
-.card-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.02em;
-  margin-bottom: 6px;
-}
-
-.card-subtitle {
-  font-size: 0.9rem;
-  color: #64748b;
-  line-height: 1.5;
-}
-
-.alert-box {
-  padding: 12px 16px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  margin-bottom: 20px;
-  line-height: 1.4;
-}
-
-.alert-box.error {
-  background-color: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
-}
-
-.alert-box.success {
-  background-color: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
-}
-
-.profile-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-label {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #334155;
-}
-
-.required {
-  color: #ef4444;
-}
-
-.form-input {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  color: #0f172a;
-  background: #ffffff;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  font-family: inherit;
-}
-
-.form-input:focus {
-  border-color: #000000;
-  box-shadow: 0 0 0 1px #000000;
-}
-
-.readonly-input {
-  background-color: #f8fafc;
-  color: #64748b;
-  cursor: not-allowed;
-  border-color: #e2e8f0;
-}
-
-.input-hint {
-  font-size: 0.78rem;
-  color: #94a3b8;
-}
-
-.btn-submit {
-  margin-top: 10px;
-  background-color: #000000;
-  color: #ffffff;
-  border: none;
-  padding: 12px;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-submit:hover:not(:disabled) {
-  opacity: 0.85;
-}
-
-.btn-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.loading-state {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.mini-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #ffffff;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.complete-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px 20px; }
+.complete-card { width: 100%; max-width: 540px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 36px 32px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05); }
+.card-header { margin-bottom: 24px; }
+.brand-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.logo-bold { font-size: 1.25rem; font-weight: 800; color: #000000; }
+.brand-row span:nth-child(2) { font-size: 1.25rem; color: #000000; }
+.role-badge { font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; background-color: #f1f5f9; color: #475569; }
+.role-badge.teacher-badge { background-color: #000000; color: #ffffff; }
+.card-title { font-size: 1.5rem; font-weight: 700; color: #0f172a; letter-spacing: -0.02em; margin-bottom: 6px; }
+.card-subtitle { font-size: 0.9rem; color: #64748b; line-height: 1.5; }
+.alert-box { padding: 12px 16px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.4; }
+.alert-box.error { background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.alert-box.success { background-color: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.profile-form { display: flex; flex-direction: column; gap: 18px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 0.88rem; font-weight: 600; color: #334155; }
+.required { color: #ef4444; }
+.form-input { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; color: #0f172a; background: #ffffff; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; font-family: inherit; }
+.form-input:focus { border-color: #000000; box-shadow: 0 0 0 1px #000000; }
+.readonly-input { background-color: #f8fafc; color: #64748b; cursor: not-allowed; border-color: #e2e8f0; }
+.input-hint { font-size: 0.78rem; color: #94a3b8; }
+.btn-submit { margin-top: 10px; background-color: #000000; color: #ffffff; border: none; padding: 12px; border-radius: 6px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s ease; display: flex; align-items: center; justify-content: center; }
+.btn-submit:hover:not(:disabled) { opacity: 0.85; }
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.loading-state { display: flex; align-items: center; gap: 8px; }
+.mini-spinner { width: 16px; height: 16px; border: 2px solid #ffffff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

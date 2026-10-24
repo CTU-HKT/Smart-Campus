@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://cntt.workflow.edu.vn/diem-i" exporter="Flowable Open Source Modeler" exporterVersion="6.8.0">
+  <process id="quyTrinhDuyetDiemI_CNTT" name="NopHoSoDiemI" isExecutable="true">
+    <startEvent id="startEvent" name="Sinh vien nop don online" flowable:formFieldValidation="true"></startEvent>
+    <serviceTask id="stTiepNhan" name="Tiep nhan, cap ma don, luu ho so" scriptFormat="javascript" flowable:autoStoreVariables="false">
+      <script><![CDATA[// Tiep nhan ho so]]></script>
+    </serviceTask>
+    <serviceTask id="stKiemTraTuDong" name="Kiem tra du lieu va tep dinh kem" scriptFormat="javascript" flowable:autoStoreVariables="false">
+      <script><![CDATA[execution.setVariable("hoSoHopLe", true);]]></script>
+    </serviceTask>
+    <exclusiveGateway id="gwHoSoHopLe" name="Ho so hop le?"></exclusiveGateway>
+    <serviceTask id="stThongBaoLoi" name="Thong bao loi de sinh vien sua" scriptFormat="javascript" flowable:autoStoreVariables="false">
+      <script><![CDATA[// Thong bao loi]]></script>
+    </serviceTask>
+    <endEvent id="endCanSua" name="Can sua va nop lai"></endEvent>
+    <serviceTask id="stGhiNhanHopLe" name="Ghi nhan hop le, gui bien nhan &amp; chuyen GV" scriptFormat="javascript" flowable:autoStoreVariables="false">
+      <script><![CDATA[// Chuyen GV]]></script>
+    </serviceTask>
+    <userTask id="utGiangVienKiemTra" name="Giang vien hoc phan xet duyet" flowable:assignee="${giangVienId}" flowable:formFieldValidation="true">
+      <extensionElements>
+        <modeler:initiator-can-complete xmlns:modeler="http://flowable.org/modeler"><![CDATA[false]]></modeler:initiator-can-complete>
+      </extensionElements>
+    </userTask>
+    <exclusiveGateway id="gwKetQuaGV" name="Ket qua GV kiem tra?"></exclusiveGateway>
+    <serviceTask id="stGVTuChoi" name="Luu ly do GV tu choi va thong bao" scriptFormat="javascript" flowable:autoStoreVariables="false">
+      <script><![CDATA[// GV tu choi]]></script>
+    </serviceTask>
+    <serviceTask id="stGVBoSung" name="Thong bao can bo sung minh chung" scriptFormat="javascript" flowable:autoStoreVariables="false">
+      <script><![CDATA[// Can bo sung]]></script>
+    </serviceTask>
+    <serviceTask id="stChuyenKhoa" name="Luu ket qua &amp; Cho Truong Khoa duyet" scriptFormat="javascript" flowable:autoStoreVariables="false">
+      <script><![CDATA[// Chuyen Truong Khoa]]></script>
+    </serviceTask>
+    <userTask id="utKhoaPheDuyet" name="Truong Khoa phe duyet" flowable:assignee="${truongKhoaId}" flowable:formFieldValidation="true">
+      <extensionElements>
+        <modeler:initiator-can-complete xmlns:modeler="http://flowable.org/modeler"><![CDATA[false]]></modeler:initiator-can-complete>
+      </extensionElements>
+    </userTask>
+    <exclusiveGateway id="gwQuyetDinhKhoa" name="Quyet dinh phe duyet?"></exclusiveGateway>
+    <serviceTask id="stLuuKetQuaVaPDF" name="Xac nhan phe duyet ho so" scriptFormat="javascript" flowable:autoStoreVariables="false">
+      <script><![CDATA[// Phe duyet ho so]]></script>
+    </serviceTask>
+    <serviceTask id="stKhoaTuChoi" name="Luu ly do va thong bao tu choi" scriptFormat="javascript" flowable:autoStoreVariables="false">
+      <script><![CDATA[// Khoa tu choi]]></script>
+    </serviceTask>
+    <endEvent id="endDonBiTuChoi" name="Don bi tu choi"></endEvent>
+    <endEvent id="endChoBoSung" name="Cho sinh vien bo sung"></endEvent>
+    <endEvent id="endPheDuyet" name="Ho so duoc phe duyet"></endEvent>
+    <endEvent id="endKetThucTuChoi" name="Ket thuc: tu choi"></endEvent>
+    <sequenceFlow id="f1" sourceRef="startEvent" targetRef="stTiepNhan"></sequenceFlow>
+    <sequenceFlow id="f2" sourceRef="stTiepNhan" targetRef="stKiemTraTuDong"></sequenceFlow>
+    <sequenceFlow id="f3" sourceRef="stKiemTraTuDong" targetRef="gwHoSoHopLe"></sequenceFlow>
+    <sequenceFlow id="f4" sourceRef="stThongBaoLoi" targetRef="endCanSua"></sequenceFlow>
+    <sequenceFlow id="f6" sourceRef="utGiangVienKiemTra" targetRef="gwKetQuaGV"></sequenceFlow>
+    <sequenceFlow id="f7" sourceRef="stGVTuChoi" targetRef="endDonBiTuChoi"></sequenceFlow>
+    <sequenceFlow id="f13" sourceRef="stChuyenKhoa" targetRef="utKhoaPheDuyet"></sequenceFlow>
+    <sequenceFlow id="f14" sourceRef="utKhoaPheDuyet" targetRef="gwQuyetDinhKhoa"></sequenceFlow>
+    <sequenceFlow id="fKhoaDuyet" name="Phe duyet" sourceRef="gwQuyetDinhKhoa" targetRef="stLuuKetQuaVaPDF">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${quyetDinhKhoa == 'PHE_DUYET'}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="fKhoaTuChoi" name="Tu choi" sourceRef="gwQuyetDinhKhoa" targetRef="stKhoaTuChoi">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${quyetDinhKhoa == 'TU_CHOI'}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="f15" sourceRef="stLuuKetQuaVaPDF" targetRef="endPheDuyet"></sequenceFlow>
+    <sequenceFlow id="fHopLeKhong" name="Khong" sourceRef="gwHoSoHopLe" targetRef="stThongBaoLoi">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${hoSoHopLe == false}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="fHopLeCo" name="Co" sourceRef="gwHoSoHopLe" targetRef="stGhiNhanHopLe">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${hoSoHopLe == true}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="fGVTuchoi" name="Tu choi" sourceRef="gwKetQuaGV" targetRef="stGVTuChoi">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${ketQuaGV == 'TU_CHOI'}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="fGVBoSung" name="Can bo sung" sourceRef="gwKetQuaGV" targetRef="stGVBoSung">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${ketQuaGV == 'BO_SUNG'}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="f5" sourceRef="stGhiNhanHopLe" targetRef="utGiangVienKiemTra"></sequenceFlow>
+    <sequenceFlow id="f8" sourceRef="stGVBoSung" targetRef="endChoBoSung"></sequenceFlow>
+    <sequenceFlow id="fGVDat" name="Dat" sourceRef="gwKetQuaGV" targetRef="stChuyenKhoa">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${ketQuaGV == 'DAT'}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="f16" sourceRef="stKhoaTuChoi" targetRef="endKetThucTuChoi"></sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_quyTrinhDuyetDiemI_CNTT1">
+    <bpmndi:BPMNPlane bpmnElement="quyTrinhDuyetDiemI_CNTT1" id="BPMNPlane_quyTrinhDuyetDiemI_CNTT1">
+      <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
+        <omgdc:Bounds height="30.0" width="30.0" x="114.99999756283248" y="130.3556596798682"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="stTiepNhan" id="BPMNShape_stTiepNhan">
+        <omgdc:Bounds height="60.0" width="100.0" x="80.0" y="260.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="stKiemTraTuDong" id="BPMNShape_stKiemTraTuDong">
+        <omgdc:Bounds height="60.0" width="100.0" x="230.0" y="260.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="gwHoSoHopLe" id="BPMNShape_gwHoSoHopLe">
+        <omgdc:Bounds height="40.0" width="40.0" x="374.9999774297101" y="269.99999427795456"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="stThongBaoLoi" id="BPMNShape_stThongBaoLoi">
+        <omgdc:Bounds height="60.000000000000014" width="100.0" x="344.9999926884975" y="59.99999872843435"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endCanSua" id="BPMNShape_endCanSua">
+        <omgdc:Bounds height="28.0" width="28.0" x="614.9999869664521" y="75.99999711778455"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="stGhiNhanHopLe" id="BPMNShape_stGhiNhanHopLe">
+        <omgdc:Bounds height="60.0" width="99.99999999999994" x="344.9999853769952" y="449.00281827060314"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="utGiangVienKiemTra" id="BPMNShape_utGiangVienKiemTra">
+        <omgdc:Bounds height="60.0" width="100.00000000000006" x="494.9999685287509" y="259.99998876783684"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="gwKetQuaGV" id="BPMNShape_gwKetQuaGV">
+        <omgdc:Bounds height="40.0" width="40.0" x="704.9999850591036" y="269.99999427795456"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="stGVTuChoi" id="BPMNShape_stGVTuChoi">
+        <omgdc:Bounds height="60.0" width="100.0" x="674.9999707539903" y="464.99997043609915"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="stGVBoSung" id="BPMNShape_stGVBoSung">
+        <omgdc:Bounds height="60.000000000000014" width="100.0" x="761.4948016671227" y="74.65635310461987"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="stChuyenKhoa" id="BPMNShape_stChuyenKhoa">
+        <omgdc:Bounds height="60.0" width="100.0" x="915.0" y="259.99998876783684"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="utKhoaPheDuyet" id="BPMNShape_utKhoaPheDuyet">
+        <omgdc:Bounds height="60.0" width="100.0" x="1110.0" y="259.99998876783684"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="gwQuyetDinhKhoa" id="BPMNShape_gwQuyetDinhKhoa">
+        <omgdc:Bounds height="40.0" width="40.0" x="1290.0" y="270.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="stLuuKetQuaVaPDF" id="BPMNShape_stLuuKetQuaVaPDF">
+        <omgdc:Bounds height="60.0" width="100.0" x="1260.0" y="464.99997009701497"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="stKhoaTuChoi" id="BPMNShape_stKhoaTuChoi">
+        <omgdc:Bounds height="60.0" width="100.0" x="1260.0" y="74.65635310461988"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endDonBiTuChoi" id="BPMNShape_endDonBiTuChoi">
+        <omgdc:Bounds height="28.0" width="28.0" x="989.999958038334" y="480.99997009701497"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endChoBoSung" id="BPMNShape_endChoBoSung">
+        <omgdc:Bounds height="28.0" width="28.0" x="1020.0" y="90.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endPheDuyet" id="BPMNShape_endPheDuyet">
+        <omgdc:Bounds height="28.0" width="28.0" x="1455.0" y="480.99997043609915"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endKetThucTuChoi" id="BPMNShape_endKetThucTuChoi">
+        <omgdc:Bounds height="28.0" width="28.0" x="1455.0" y="90.65635310461988"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="fKhoaTuChoi" id="BPMNEdge_fKhoaTuChoi" flowable:sourceDockerX="20.0" flowable:sourceDockerY="20.0" flowable:targetDockerX="50.0" flowable:targetDockerY="30.0">
+        <omgdi:waypoint x="1310.0" y="270.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1310.0" y="134.60635310461987"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f14" id="BPMNEdge_f14" flowable:sourceDockerX="50.0" flowable:sourceDockerY="30.0" flowable:targetDockerX="20.0" flowable:targetDockerY="20.0">
+        <omgdi:waypoint x="1209.95" y="289.9999925081472"></omgdi:waypoint>
+        <omgdi:waypoint x="1290.0" y="289.99999850237833"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f13" id="BPMNEdge_f13" flowable:sourceDockerX="50.0" flowable:sourceDockerY="30.0" flowable:targetDockerX="50.0" flowable:targetDockerY="30.0">
+        <omgdi:waypoint x="1014.9499999999803" y="289.99998876783684"></omgdi:waypoint>
+        <omgdi:waypoint x="1109.9999999998254" y="289.99998876783684"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f16" id="BPMNEdge_f16" flowable:sourceDockerX="50.0" flowable:sourceDockerY="30.0" flowable:targetDockerX="14.0" flowable:targetDockerY="14.0">
+        <omgdi:waypoint x="1359.95" y="104.65635310461988"></omgdi:waypoint>
+        <omgdi:waypoint x="1455.0" y="104.65635310461988"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f1" id="BPMNEdge_f1" flowable:sourceDockerX="15.0" flowable:sourceDockerY="15.0" flowable:targetDockerX="50.0" flowable:targetDockerY="30.0">
+        <omgdi:waypoint x="129.99999756283248" y="160.30565880632597"></omgdi:waypoint>
+        <omgdi:waypoint x="129.9999994945186" y="260.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f15" id="BPMNEdge_f15" flowable:sourceDockerX="50.0" flowable:sourceDockerY="30.0" flowable:targetDockerX="14.0" flowable:targetDockerY="14.0">
+        <omgdi:waypoint x="1359.95" y="494.9999702035386"></omgdi:waypoint>
+        <omgdi:waypoint x="1455.0" y="494.9999704062427"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f2" id="BPMNEdge_f2" flowable:sourceDockerX="50.0" flowable:sourceDockerY="30.0" flowable:targetDockerX="50.0" flowable:targetDockerY="30.0">
+        <omgdi:waypoint x="179.94999999987277" y="290.0"></omgdi:waypoint>
+        <omgdi:waypoint x="229.9999999997658" y="290.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f3" id="BPMNEdge_f3" flowable:sourceDockerX="50.0" flowable:sourceDockerY="30.0" flowable:targetDockerX="20.0" flowable:targetDockerY="20.0">
+        <omgdi:waypoint x="329.95000000000005" y="289.99999751215364"></omgdi:waypoint>
+        <omgdi:waypoint x="374.99997767935855" y="289.9999952706052"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f4" id="BPMNEdge_f4" flowable:sourceDockerX="50.0" flowable:sourceDockerY="30.000000000000007" flowable:targetDockerX="14.0" flowable:targetDockerY="14.0">
+        <omgdi:waypoint x="444.94999033947425" y="89.99999838427841"></omgdi:waypoint>
+        <omgdi:waypoint x="614.9999869664521" y="89.99999721380405"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="fGVBoSung" id="BPMNEdge_fGVBoSung" flowable:sourceDockerX="20.0" flowable:sourceDockerY="20.0" flowable:targetDockerX="50.0" flowable:targetDockerY="30.000000000000007">
+        <omgdi:waypoint x="724.893034773585" y="270.10165133136604"></omgdi:waypoint>
+        <omgdi:waypoint x="724.0" y="104.0"></omgdi:waypoint>
+        <omgdi:waypoint x="761.4948016671219" y="104.2812719043007"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f5" id="BPMNEdge_f5" flowable:sourceDockerX="49.99999999999997" flowable:sourceDockerY="30.0" flowable:targetDockerX="50.00000000000003" flowable:targetDockerY="30.0">
+        <omgdi:waypoint x="444.9499853769952" y="479.0018725423057"></omgdi:waypoint>
+        <omgdi:waypoint x="544.0" y="479.0"></omgdi:waypoint>
+        <omgdi:waypoint x="544.8412433748902" y="319.9499887678368"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f6" id="BPMNEdge_f6" flowable:sourceDockerX="50.00000000000003" flowable:sourceDockerY="30.0" flowable:targetDockerX="20.0" flowable:targetDockerY="20.0">
+        <omgdi:waypoint x="594.949968528751" y="289.9999902968944"></omgdi:waypoint>
+        <omgdi:waypoint x="704.9999850591036" y="289.99999366571933"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="fGVTuchoi" id="BPMNEdge_fGVTuchoi" flowable:sourceDockerX="20.0" flowable:sourceDockerY="20.0" flowable:targetDockerX="50.0" flowable:targetDockerY="30.0">
+        <omgdi:waypoint x="724.9999836634827" y="309.9451321872745"></omgdi:waypoint>
+        <omgdi:waypoint x="724.9999728439327" y="464.99997043609915"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f7" id="BPMNEdge_f7" flowable:sourceDockerX="50.0" flowable:sourceDockerY="30.0" flowable:targetDockerX="14.0" flowable:targetDockerY="14.0">
+        <omgdi:waypoint x="774.9498770476765" y="494.99997037533143"></omgdi:waypoint>
+        <omgdi:waypoint x="989.999958038334" y="494.9999701139692"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="f8" id="BPMNEdge_f8" flowable:sourceDockerX="50.0" flowable:sourceDockerY="30.000000000000007" flowable:targetDockerX="14.0" flowable:targetDockerY="14.0">
+        <omgdi:waypoint x="861.444801667121" y="104.50886147082042"></omgdi:waypoint>
+        <omgdi:waypoint x="1020.0000578737022" y="104.04115012042283"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="fHopLeKhong" id="BPMNEdge_fHopLeKhong" flowable:sourceDockerX="20.0" flowable:sourceDockerY="20.0" flowable:targetDockerX="50.0" flowable:targetDockerY="30.000000000000007">
+        <omgdi:waypoint x="394.99997895177404" y="269.99999580383326"></omgdi:waypoint>
+        <omgdi:waypoint x="394.99999039967935" y="119.94999872843437"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="fHopLeCo" id="BPMNEdge_fHopLeCo" flowable:sourceDockerX="20.0" flowable:sourceDockerY="20.0" flowable:targetDockerX="49.99999999999997" flowable:targetDockerY="30.0">
+        <omgdi:waypoint x="394.9999782685776" y="309.9447185317475"></omgdi:waypoint>
+        <omgdi:waypoint x="394.9999841155402" y="449.00281827060314"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="fKhoaDuyet" id="BPMNEdge_fKhoaDuyet" flowable:sourceDockerX="20.0" flowable:sourceDockerY="20.0" flowable:targetDockerX="50.0" flowable:targetDockerY="30.0">
+        <omgdi:waypoint x="1310.0" y="309.94513651806216"></omgdi:waypoint>
+        <omgdi:waypoint x="1310.0" y="464.99997009701497"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="fGVDat" id="BPMNEdge_fGVDat" flowable:sourceDockerX="20.0" flowable:sourceDockerY="20.0" flowable:targetDockerX="1.0" flowable:targetDockerY="30.0">
+        <omgdi:waypoint x="744.9447658543734" y="289.99999370097896"></omgdi:waypoint>
+        <omgdi:waypoint x="915.0" y="289.99998879524315"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

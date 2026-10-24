@@ -27,7 +27,7 @@ services:
         condition: service_healthy
     environment:
       PGRST_DB_URI: postgres://smartcampus:smartcampus@postgres:5432/smartcampus
-      PGRST_DB_SCHEMAS: public
+      PGRST_DB_SCHEMAS: app,public
       PGRST_DB_ANON_ROLE: web_anon
       PGRST_JWT_SECRET: dxos-super-secret-jwt-key-2026-olp-vfoss
     ports:

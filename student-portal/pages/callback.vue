@@ -38,22 +38,27 @@ onMounted(async () => {
     const sub = parsed.sub
     const token = $keycloak.token
     const realmRoles = parsed.realm_access?.roles || []
-    const isTeacher = realmRoles.includes('teacher')
+    const isTeacher = realmRoles.includes('teacher') || realmRoles.includes('dean')
 
     try {
-      // Kiểm tra hồ sơ trong Database (Áp dụng cho CẢ Giáo viên và Sinh viên)
-      const data = await $fetch(`http://localhost:9080/api/postgrest/profiles?user_id=eq.${sub}`, {
+      // Kiểm tra hồ sơ trong Database (app.can_bo cho Giáo viên/Cán bộ, app.sinh_vien cho Sinh viên)
+      const endpoint = isTeacher
+        ? `http://localhost:9080/api/postgrest/can_bo?keycloak_sub=eq.${sub}`
+        : `http://localhost:9080/api/postgrest/sinh_vien?keycloak_sub=eq.${sub}`
+
+      const data = await $fetch(endpoint, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       })
 
       const profile = Array.isArray(data) ? data[0] : null
-      // Nếu chưa có hồ sơ HOẶC thiếu các trường bắt buộc (mã định danh, họ tên, khoa/đơn vị)
-      const isIncomplete = !profile || !profile.student_code || !profile.faculty || !profile.major || !profile.date_of_birth || !profile.phone || !profile.full_name
+      // Kiểm tra đầy đủ thông tin theo bảng tương ứng
+      const isIncomplete = isTeacher
+        ? (!profile || !profile.ma_cb || !profile.ho_ten || !profile.don_vi)
+        : (!profile || !profile.ma_sv || !profile.ho_ten || !profile.khoa || !profile.lop)
 
       if (isIncomplete) {
-        // Cả giáo viên lẫn sinh viên nếu chưa hoàn thiện hồ sơ đều phải qua bước này
         return navigateTo('/complete-profile')
       }
 
@@ -67,7 +72,6 @@ onMounted(async () => {
       }, 400)
     } catch (err) {
       console.error('Lỗi khi kiểm tra thông tin hồ sơ:', err)
-      // Nếu có lỗi query (ví dụ chưa có profile), chuyển sang trang hoàn thiện hồ sơ
       navigateTo('/complete-profile')
     }
   } else {
@@ -78,71 +82,12 @@ onMounted(async () => {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-.redirect-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8fafc;
-  color: #0f172a;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: 24px;
-}
-
-.redirect-card {
-  width: 100%;
-  max-width: 440px;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 40px 32px;
-  text-align: center;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06);
-}
-
-.spinner {
-  width: 44px;
-  height: 44px;
-  border: 4px solid #f1f5f9;
-  border-top: 4px solid #000000;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-h2 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 8px;
-}
-
-p {
-  font-size: 0.95rem;
-  color: #64748b;
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-
-.btn-home {
-  display: inline-block;
-  background-color: #000000;
-  color: #ffffff;
-  padding: 10px 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: opacity 0.15s ease;
-}
-
-.btn-home:hover {
-  opacity: 0.85;
-}
+.redirect-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f8fafc; color: #0f172a; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; }
+.redirect-card { width: 100%; max-width: 440px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 40px 32px; text-align: center; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06); }
+.spinner { width: 44px; height: 44px; border: 4px solid #f1f5f9; border-top: 4px solid #000000; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+h2 { font-size: 1.3rem; font-weight: 700; color: #000000; margin-bottom: 8px; }
+p { font-size: 0.95rem; color: #64748b; line-height: 1.5; margin-bottom: 20px; }
+.btn-home { display: inline-block; background-color: #000000; color: #ffffff; padding: 10px 20px; font-size: 0.9rem; font-weight: 600; border-radius: 6px; text-decoration: none; transition: opacity 0.15s ease; }
+.btn-home:hover { opacity: 0.85; }
 </style>

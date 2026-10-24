@@ -347,27 +347,42 @@ const user = ref({ name: '...' })
 const applications = ref([])
 const activeTab = ref('queue')
 
-// Gọi API lấy toàn bộ đơn từ (Dành cho Admin)
+// Gọi API lấy toàn bộ đơn từ (Dành cho Admin/Cán bộ)
 const fetchAllApplications = async () => {
   if (!$keycloak.authenticated) return
   try {
-    // Gọi API. Vì là admin, RLS bên Postgres sẽ trả về toàn bộ data.
-    const data = await $fetch('http://localhost:9080/api/applications', {
+    // Gọi bảng app.ho_so qua APISIX PostgREST kèm thông tin sinh viên và loại hồ sơ
+    const data = await $fetch('http://localhost:9080/api/postgrest/ho_so?select=id,ma_hs,ma_sv,ma_loai,ngay_nop,trang_thai,ly_do,sinh_vien(ho_ten,ma_sv,lop),loai_ho_so(ten_loai)', {
       headers: { Authorization: `Bearer ${$keycloak.token}` }
     })
     
-    applications.value = data.map(item => ({
-      id: item.id.substring(0, 8),
-      code: `REQ-${item.id.substring(0, 6)}`,
-      studentName: item.user_id.substring(0, 8), // Tạm hiện ID, sau này JOIN bảng profiles để lấy tên
-      mssv: 'SV001',
-      docTitle: item.application_type,
-      submittedAt: new Date(item.created_at).toLocaleDateString('vi-VN'),
-      status: item.status === 'pending' ? 'Chờ duyệt' : 'Đã ký số',
-      statusCode: item.status === 'pending' ? 'pending' : 'completed',
-      domain: 'Hành chính số',
-      docTag: 'Dịch vụ đơn từ'
-    }))
+    applications.value = data.map(item => {
+      let statusCode = 'pending'
+      let statusLabel = 'Chờ duyệt'
+      if (item.trang_thai === 'Đã duyệt') {
+        statusCode = 'completed'
+        statusLabel = 'Đã ký số'
+      } else if (item.trang_thai === 'Từ chối') {
+        statusCode = 'rejected'
+        statusLabel = 'Từ chối'
+      } else if (item.trang_thai === 'Đang duyệt') {
+        statusCode = 'processing'
+        statusLabel = 'Đang duyệt'
+      }
+
+      return {
+        id: String(item.id),
+        code: item.ma_hs || `REQ-${item.id}`,
+        studentName: item.sinh_vien?.ho_ten || item.ma_sv,
+        mssv: item.sinh_vien?.ma_sv || item.ma_sv,
+        docTitle: item.loai_ho_so?.ten_loai || item.ma_loai,
+        submittedAt: new Date(item.ngay_nop).toLocaleDateString('vi-VN'),
+        status: statusLabel,
+        statusCode: statusCode,
+        domain: 'Hành chính số',
+        docTag: item.loai_ho_so?.ten_loai || 'Dịch vụ đơn từ'
+      }
+    })
   } catch (error) {
     console.error('Lỗi Admin lấy dữ liệu:', error)
   }
@@ -376,8 +391,8 @@ const fetchAllApplications = async () => {
 onMounted(async () => {
   if ($keycloak.authenticated) {
     const roles = $keycloak.tokenParsed?.realm_access?.roles || []
-    // Bảo vệ trang Admin: Nếu không phải admin thì đuổi về
-    if (!roles.includes('teacher')) {
+    // Bảo vệ trang Admin: Nếu không phải cán bộ/trưởng khoa thì đuổi về
+    if (!roles.includes('teacher') && !roles.includes('dean')) {
       navigateTo('/user/homepageuser')
       return
     }
@@ -385,11 +400,11 @@ onMounted(async () => {
     const sub = $keycloak.tokenParsed?.sub
     // Lấy tên thật từ database
     try {
-      const profileData = await $fetch(`http://localhost:9080/api/profiles?user_id=eq.${sub}`, {
+      const profileData = await $fetch(`http://localhost:9080/api/postgrest/can_bo?keycloak_sub=eq.${sub}`, {
         headers: { Authorization: `Bearer ${$keycloak.token}` }
       })
-      if (profileData?.[0]?.full_name) {
-        user.value = { name: profileData[0].full_name }
+      if (profileData?.[0]?.ho_ten) {
+        user.value = { name: profileData[0].ho_ten }
       } else {
         user.value = { name: $keycloak.tokenParsed?.name || $keycloak.tokenParsed?.preferred_username || 'Cán bộ' }
       }
@@ -409,10 +424,10 @@ const searchQuery = ref('')
 const filterDomain = ref('all')
 const filterDocType = ref('all')
 const filterStatus = ref('all')
-const pendingCount = computed(() => applications.value.filter(a => a.status === 'Chờ duyệt').length)
+const pendingCount = computed(() => applications.value.filter(a => a.status === 'Chờ duyệt' || a.status === 'Đang duyệt').length)
 const approvedCount = computed(() => applications.value.filter(a => a.status === 'Đã ký số').length)
 const needMoreCount = computed(() => 0)
-const rejectedCount = computed(() => 0)
+const rejectedCount = computed(() => applications.value.filter(a => a.status === 'Từ chối').length)
 const filteredApplications = computed(() => {
   return applications.value.filter(item => {
     if (searchQuery.value && !item.code.toLowerCase().includes(searchQuery.value.toLowerCase()) && !item.studentName.toLowerCase().includes(searchQuery.value.toLowerCase())) return false
@@ -428,646 +443,95 @@ const daysList = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-/* ================= TOÀN TRANG: THEME TRẮNG SÁNG & PHONG CÁCH INDEX.VUE ================= */
-.admin-wrapper {
-  min-height: 100vh;
-  background-color: #ffffff;
-  color: #0f172a;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding-bottom: 80px;
-}
-
-/* ================= NAVBAR (ĐỒNG BỘ INDEX.VUE) ================= */
-.navbar {
-  width: 100%;
-  padding: 20px 0;
-  border-bottom: 1px solid #e2e8f0;
-  background-color: #ffffff;
-  position: sticky;
-  top: 0;
-  z-index: 30;
-}
-
-.nav-container {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-/* Logo SmartCampus */
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.logo {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: #000000;
-  text-decoration: none;
-  letter-spacing: -0.02em;
-}
-
-.logo-bold {
-  font-weight: 800;
-}
-
-.brand-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  background-color: #f1f5f9;
-  color: #0f172a;
-  padding: 2px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
-
-/* Thông tin Cán bộ thẩm định */
-.officer-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  color: #64748b;
-  text-decoration: none;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.officer-info:hover {
-  opacity: 0.8;
-}
-
-.officer-name {
-  font-weight: 600;
-  color: #000000;
-}
-
-.status-dot-separator {
-  color: #cbd5e1;
-}
-
-.signature-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #059669;
-  background-color: #ecfdf5;
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 1px solid #a7f3d0;
-}
-
-.green-dot {
-  width: 6px;
-  height: 6px;
-  background-color: #10b981;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-/* Tab Switcher & Nút Logout */
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.tab-control {
-  display: flex;
-  align-items: center;
-  background-color: #f1f5f9;
-  padding: 4px;
-  border-radius: 8px;
-  gap: 4px;
-}
-
-.tab-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: #64748b;
-  font-size: 0.88rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.tab-item:hover {
-  color: #000000;
-}
-
-.tab-item.active {
-  background-color: #000000;
-  color: #ffffff;
-}
-
-.badge-count {
-  font-size: 0.72rem;
-  font-weight: 700;
-  background-color: #e2e8f0;
-  color: #0f172a;
-  padding: 1px 6px;
-  border-radius: 10px;
-}
-
-.tab-item.active .badge-count {
-  background-color: #334155;
-  color: #ffffff;
-}
-
-.btn-logout {
-  background-color: #ffffff;
-  border: 1.5px solid #e2e8f0;
-  color: #475569;
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.btn-logout:hover {
-  border-color: #000000;
-  color: #000000;
-}
-
-/* ================= TIÊU ĐỀ TRANG ================= */
-.page-title-section {
-  padding: 36px 0 24px;
-}
-
-.main-container {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 32px;
-}
-
-.page-main-heading {
-  font-size: 2.2rem;
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  color: #000000;
-  line-height: 1.2;
-}
-
-.page-sub-heading {
-  font-size: 1rem;
-  color: #64748b;
-  margin-top: 6px;
-}
-
-/* ================= 4 STAT BOXES (THEO THEME INDEX.VUE) ================= */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat-box {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 20px 24px;
-  transition: border-color 0.15s ease;
-}
-
-.stat-box:hover {
-  border-color: #cbd5e1;
-}
-
-.stat-title {
-  font-size: 0.88rem;
-  color: #64748b;
-  font-weight: 500;
-  margin-bottom: 10px;
-}
-
-.stat-number {
-  font-size: 2.2rem;
-  font-weight: 800;
-  line-height: 1;
-  color: #000000;
-}
-
+.admin-wrapper { min-height: 100vh; background-color: #ffffff; color: #0f172a; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding-bottom: 80px; }
+.navbar { width: 100%; padding: 20px 0; border-bottom: 1px solid #e2e8f0; background-color: #ffffff; position: sticky; top: 0; z-index: 30; }
+.nav-container { max-width: 1240px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.nav-brand { display: flex; align-items: center; gap: 10px; }
+.logo { font-size: 1.25rem; font-weight: 500; color: #000000; text-decoration: none; letter-spacing: -0.02em; }
+.logo-bold { font-weight: 800; }
+.brand-badge { font-size: 0.75rem; font-weight: 700; background-color: #f1f5f9; color: #0f172a; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+.officer-info { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: #64748b; text-decoration: none; cursor: pointer; transition: opacity 0.15s ease; }
+.officer-info:hover { opacity: 0.8; }
+.officer-name { font-weight: 600; color: #000000; }
+.status-dot-separator { color: #cbd5e1; }
+.signature-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 500; color: #059669; background-color: #ecfdf5; padding: 3px 10px; border-radius: 20px; border: 1px solid #a7f3d0; }
+.green-dot { width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; display: inline-block; }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.tab-control { display: flex; align-items: center; background-color: #f1f5f9; padding: 4px; border-radius: 8px; gap: 4px; }
+.tab-item { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 6px; border: none; background: transparent; color: #64748b; font-size: 0.88rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s ease; }
+.tab-item:hover { color: #000000; }
+.tab-item.active { background-color: #000000; color: #ffffff; }
+.badge-count { font-size: 0.72rem; font-weight: 700; background-color: #e2e8f0; color: #0f172a; padding: 1px 6px; border-radius: 10px; }
+.tab-item.active .badge-count { background-color: #334155; color: #ffffff; }
+.btn-logout { background-color: #ffffff; border: 1.5px solid #e2e8f0; color: #475569; padding: 8px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; }
+.btn-logout:hover { border-color: #000000; color: #000000; }
+.page-title-section { padding: 36px 0 24px; }
+.main-container { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+.page-main-heading { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.035em; color: #000000; line-height: 1.2; }
+.page-sub-heading { font-size: 1rem; color: #64748b; margin-top: 6px; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-box { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px 24px; transition: border-color 0.15s ease; }
+.stat-box:hover { border-color: #cbd5e1; }
+.stat-title { font-size: 0.88rem; color: #64748b; font-weight: 500; margin-bottom: 10px; }
+.stat-number { font-size: 2.2rem; font-weight: 800; line-height: 1; color: #000000; }
 .text-emerald { color: #059669; }
 .text-amber { color: #d97706; }
 .text-rose { color: #e11d48; }
-
-/* ================= FILTER TOOLBAR ================= */
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.search-box {
-  flex: 1;
-  min-width: 280px;
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  color: #94a3b8;
-  display: flex;
-}
-
-.search-input {
-  width: 100%;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 10px 14px 10px 38px;
-  font-size: 0.92rem;
-  color: #0f172a;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 0.15s ease;
-}
-
-.search-input:focus {
-  border-color: #000000;
-}
-
-.filter-dropdown {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 4px 12px;
-}
-
-.dropdown-label {
-  font-size: 0.86rem;
-  color: #64748b;
-}
-
-.dropdown-select {
-  border: none;
-  background: transparent;
-  color: #0f172a;
-  font-size: 0.9rem;
-  font-weight: 500;
-  font-family: inherit;
-  outline: none;
-  cursor: pointer;
-  padding: 6px 0;
-}
-
-/* ================= BẢNG DANH SÁCH & EMPTY STATE ================= */
-.table-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.data-table thead th {
-  padding: 16px 20px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #64748b;
-  letter-spacing: 0.04em;
-  background-color: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.data-table tbody td {
-  padding: 18px 20px;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 0.92rem;
-}
-
-.code-col {
-  font-weight: 700;
-  color: #000000;
-}
-
-.student-name {
-  font-weight: 600;
-  color: #000000;
-}
-
-.student-meta {
-  font-size: 0.8rem;
-  color: #64748b;
-}
-
-.doc-name {
-  font-weight: 500;
-  color: #0f172a;
-}
-
-.doc-badge {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 600;
-  background-color: #f1f5f9;
-  color: #475569;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-top: 4px;
-}
-
-.time-col {
-  color: #64748b;
-  font-size: 0.88rem;
-}
-
-.text-right {
-  text-align: right;
-}
-
-.btn-black-sm {
-  background-color: #000000;
-  color: #ffffff;
-  padding: 7px 14px;
-  border-radius: 6px;
-  font-size: 0.86rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-}
-
-/* ================= TRẠNG THÁI TRỐNG (EMPTY STATE CHUẨN ĐẸP) ================= */
-.empty-cell {
-  text-align: center;
-  padding: 70px 24px !important;
-}
-
-.empty-wrapper {
-  max-width: 480px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.empty-icon-circle {
-  width: 56px;
-  height: 56px;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 18px;
-}
-
-.empty-headline {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #000000;
-  margin-bottom: 8px;
-}
-
-.empty-subtext {
-  font-size: 0.92rem;
-  color: #64748b;
-  line-height: 1.6;
-}
-
-/* ================= TAB 2: THỐNG KÊ & SLA ================= */
-.sla-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.sla-box {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 24px;
-}
-
-.sla-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.sla-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.sla-value-wrap {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.sla-big-num {
-  font-size: 2.4rem;
-  font-weight: 800;
-  color: #000000;
-  line-height: 1;
-}
-
-.sla-unit {
-  font-size: 0.92rem;
-  color: #64748b;
-}
-
-.sla-note {
-  font-size: 0.86rem;
-}
-
+.filter-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.search-box { flex: 1; min-width: 280px; position: relative; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 14px; color: #94a3b8; display: flex; }
+.search-input { width: 100%; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px 10px 38px; font-size: 0.92rem; color: #0f172a; outline: none; font-family: inherit; transition: border-color 0.15s ease; }
+.search-input:focus { border-color: #000000; }
+.filter-dropdown { display: flex; align-items: center; gap: 8px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 12px; }
+.dropdown-label { font-size: 0.86rem; color: #64748b; }
+.dropdown-select { border: none; background: transparent; color: #0f172a; font-size: 0.9rem; font-weight: 500; font-family: inherit; outline: none; cursor: pointer; padding: 6px 0; }
+.table-card { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+.data-table { width: 100%; border-collapse: collapse; text-align: left; }
+.data-table thead th { padding: 16px 20px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.04em; background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+.data-table tbody td { padding: 18px 20px; border-bottom: 1px solid #f1f5f9; font-size: 0.92rem; }
+.code-col { font-weight: 700; color: #000000; }
+.student-name { font-weight: 600; color: #000000; }
+.student-meta { font-size: 0.8rem; color: #64748b; }
+.doc-name { font-weight: 500; color: #0f172a; }
+.doc-badge { display: inline-block; font-size: 0.72rem; font-weight: 600; background-color: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; margin-top: 4px; }
+.time-col { color: #64748b; font-size: 0.88rem; }
+.text-right { text-align: right; }
+.btn-black-sm { background-color: #000000; color: #ffffff; padding: 7px 14px; border-radius: 6px; font-size: 0.86rem; font-weight: 600; border: none; cursor: pointer; }
+.empty-cell { text-align: center; padding: 70px 24px !important; }
+.empty-wrapper { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
+.empty-icon-circle { width: 56px; height: 56px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+.empty-headline { font-size: 1.15rem; font-weight: 700; color: #000000; margin-bottom: 8px; }
+.empty-subtext { font-size: 0.92rem; color: #64748b; line-height: 1.6; }
+.sla-metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+.sla-box { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; }
+.sla-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.sla-label { font-size: 0.9rem; font-weight: 600; color: #64748b; }
+.sla-value-wrap { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.sla-big-num { font-size: 2.4rem; font-weight: 800; color: #000000; line-height: 1; }
+.sla-unit { font-size: 0.92rem; color: #64748b; }
+.sla-note { font-size: 0.86rem; }
 .text-muted { color: #94a3b8; }
-
-/* Khung biểu đồ */
-.chart-container-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 28px;
-}
-
-.chart-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 30px;
-}
-
-.chart-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #000000;
-}
-
-.chart-subtitle {
-  font-size: 0.88rem;
-  color: #64748b;
-  margin-top: 4px;
-}
-
-.timeframe-buttons {
-  display: flex;
-  background-color: #f1f5f9;
-  padding: 3px;
-  border-radius: 6px;
-}
-
-.btn-tf {
-  background: transparent;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 4px;
-  font-size: 0.84rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: #64748b;
-  cursor: pointer;
-}
-
-.btn-tf.active {
-  background-color: #000000;
-  color: #ffffff;
-}
-
-/* Thân biểu đồ rỗng */
-.chart-body-empty {
-  padding: 50px 0;
-  border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.empty-chart-track {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  height: 120px;
-  padding: 0 40px;
-  margin-bottom: 24px;
-}
-
-.empty-bar-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.bar-zero-line {
-  width: 36px;
-  height: 3px;
-  background-color: #e2e8f0;
-  border-radius: 2px;
-}
-
-.bar-label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #94a3b8;
-}
-
-.chart-empty-message {
-  font-size: 0.92rem;
-  color: #94a3b8;
-}
-
-.chart-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.legend-wrap {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.legend-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  display: inline-block;
-}
-
+.chart-container-card { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 28px; }
+.chart-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 30px; }
+.chart-title { font-size: 1.15rem; font-weight: 700; color: #000000; }
+.chart-subtitle { font-size: 0.88rem; color: #64748b; margin-top: 4px; }
+.timeframe-buttons { display: flex; background-color: #f1f5f9; padding: 3px; border-radius: 6px; }
+.btn-tf { background: transparent; border: none; padding: 6px 14px; border-radius: 4px; font-size: 0.84rem; font-weight: 600; font-family: inherit; color: #64748b; cursor: pointer; }
+.btn-tf.active { background-color: #000000; color: #ffffff; }
+.chart-body-empty { padding: 50px 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px; text-align: center; }
+.empty-chart-track { display: flex; justify-content: space-around; align-items: flex-end; height: 120px; padding: 0 40px; margin-bottom: 24px; }
+.empty-bar-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.bar-zero-line { width: 36px; height: 3px; background-color: #e2e8f0; border-radius: 2px; }
+.bar-label { font-size: 0.82rem; font-weight: 600; color: #94a3b8; }
+.chart-empty-message { font-size: 0.92rem; color: #94a3b8; }
+.chart-foot { display: flex; align-items: center; justify-content: space-between; }
+.legend-wrap { display: flex; align-items: center; gap: 16px; }
+.legend-indicator { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
 .dot-black { background-color: #000000; }
 .dot-gray { background-color: #e2e8f0; }
-
-.legend-name {
-  font-size: 0.86rem;
-  color: #64748b;
-  margin-left: 6px;
-}
-
-.summary-total {
-  font-size: 0.88rem;
-  color: #64748b;
-}
-
-.summary-total strong {
-  color: #000000;
-}
-
-
-
-/* ================= RESPONSIVE ================= */
-@media (max-width: 992px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .sla-metrics-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 680px) {
-  .nav-container {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .officer-info {
-    flex-wrap: wrap;
-  }
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.legend-name { font-size: 0.86rem; color: #64748b; margin-left: 6px; }
+.summary-total { font-size: 0.88rem; color: #64748b; }
+.summary-total strong { color: #000000; }
+@media (max-width: 992px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .sla-metrics-grid { grid-template-columns: 1fr; } }
+@media (max-width: 680px) { .nav-container { flex-direction: column; align-items: flex-start; } .officer-info { flex-wrap: wrap; } .filter-bar { flex-direction: column; align-items: stretch; } .stats-grid { grid-template-columns: 1fr; } }
 </style>
