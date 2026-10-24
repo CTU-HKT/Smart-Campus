@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+
+certs/*
+!certs/.gitkeep
+
+output/*
+!output/.gitkeep
+
+*.key
+*.pem
+*.p12
+*.pfx
+
+__pycache__/
+*.pyc
