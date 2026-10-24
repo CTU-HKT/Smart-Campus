@@ -265,7 +265,17 @@
                     </span>
                   </td>
                   <td>
-                    <button class="btn-table-action" @click="viewDetail(rec)">Xem tiến trình</button>
+                    <div class="action-btn-group">
+                      <button class="btn-table-action" @click="viewDetail(rec)">Xem tiến trình</button>
+                      <button 
+                        v-if="rec.isSupplementRequired" 
+                        class="btn-table-action btn-supplement" 
+                        @click="openSupplementModal(rec)"
+                        title="Chỉnh sửa & bổ sung hồ sơ theo yêu cầu của Giảng viên"
+                      >
+                        ✏️ Bổ sung
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 <tr v-if="userRecords.length === 0">
@@ -366,7 +376,17 @@
                   </span>
                 </td>
                 <td>
-                  <button class="btn-table-action" @click="viewDetail(rec)">Chi tiết</button>
+                  <div class="action-btn-group">
+                    <button class="btn-table-action" @click="viewDetail(rec)">Chi tiết</button>
+                    <button 
+                      v-if="rec.isSupplementRequired" 
+                      class="btn-table-action btn-supplement" 
+                      @click="openSupplementModal(rec)"
+                      title="Chỉnh sửa & bổ sung hồ sơ theo yêu cầu của Giảng viên"
+                    >
+                      ✏️ Chỉnh sửa / Bổ sung
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="userRecords.length === 0">
@@ -643,8 +663,28 @@
         </div>
         <div class="detail-body">
           <p><strong>Loại hồ sơ:</strong> {{ detailModalRecord.title }}</p>
+          <p v-if="detailModalRecord.courseName"><strong>Môn học:</strong> {{ detailModalRecord.courseName }} ({{ detailModalRecord.courseCode }})</p>
+          <p v-if="detailModalRecord.teacherName"><strong>Giảng viên phụ trách:</strong> {{ detailModalRecord.teacherName }}</p>
           <p><strong>Ngày gửi:</strong> {{ detailModalRecord.date }}</p>
           <p><strong>Trạng thái:</strong> <span class="status-badge" :class="detailModalRecord.statusClass">{{ detailModalRecord.status }}</span></p>
+          <p v-if="detailModalRecord.reason"><strong>Lý do đã nộp:</strong> {{ detailModalRecord.reason }}</p>
+
+          <!-- KHỐI CẢNH BÁO YÊU CẦU BỔ SUNG TỪ GIẢNG VIÊN -->
+          <div v-if="detailModalRecord.isSupplementRequired" class="supplement-alert-box">
+            <div class="supplement-alert-header">
+              <span class="warning-icon">⚠️</span>
+              <strong>Yêu cầu bổ sung từ Giảng viên bộ môn:</strong>
+            </div>
+            <div class="supplement-alert-content">
+              {{ detailModalRecord.note || 'Giảng viên yêu cầu bổ sung thông tin hoặc minh chứng cho hồ sơ.' }}
+            </div>
+            <button 
+              class="btn btn-warning-action" 
+              @click="openSupplementModal(detailModalRecord); detailModalRecord = null"
+            >
+              ✏️ Mở biểu mẫu Chỉnh sửa / Bổ sung ngay
+            </button>
+          </div>
           
           <div v-if="detailModalRecord.isDiemI" class="timeline-box">
             <h4>Tiến trình thẩm định số (BPMN Flowable):</h4>
@@ -655,11 +695,11 @@
                 <p>Đã tiếp nhận vào hệ thống</p>
               </div>
             </div>
-            <div class="timeline-step" :class="detailModalRecord.status === 'Đang duyệt' || detailModalRecord.status === 'Đã duyệt' ? 'done' : 'active'">
+            <div class="timeline-step" :class="detailModalRecord.status === 'Đang duyệt' || detailModalRecord.status === 'Đã duyệt' ? 'done' : (detailModalRecord.isSupplementRequired ? 'active' : 'active')">
               <span class="tl-dot"></span>
               <div>
                 <strong>2. Giảng viên học phần xét duyệt:</strong>
-                <p>{{ detailModalRecord.status === 'Mới' ? 'Đang chờ giảng viên kiểm tra' : 'Đã xét duyệt' }}</p>
+                <p>{{ detailModalRecord.isSupplementRequired ? 'Giảng viên đã yêu cầu bổ sung hồ sơ' : (detailModalRecord.status === 'Mới' ? 'Đang chờ giảng viên kiểm tra' : 'Đã xét duyệt') }}</p>
               </div>
             </div>
             <div class="timeline-step" :class="detailModalRecord.status === 'Đã duyệt' ? 'done' : 'waiting'">
@@ -680,6 +720,121 @@
         </div>
         <div class="modal-actions" style="margin-top: 20px;">
           <button @click="detailModalRecord = null" class="btn btn-black">Đóng</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MODAL CHỈNH SỬA / BỔ SUNG HỒ SƠ ================= -->
+    <div v-if="isSupplementModalOpen && editingRecord" class="modal-overlay" @click.self="isSupplementModalOpen = false">
+      <div class="modal-box-large animate-slide-up">
+        <div class="modal-large-header">
+          <div class="modal-header-icon-title">
+            <div class="modal-icon-badge badge-warning-icon">
+              ✏️
+            </div>
+            <div>
+              <h2 class="modal-main-title">Chỉnh Sửa / Bổ Sung Hồ Sơ {{ editingRecord.id }}</h2>
+              <p class="modal-sub-title">Cập nhật thông tin, minh chứng theo yêu cầu của Giảng viên bộ môn</p>
+            </div>
+          </div>
+          <button @click="isSupplementModalOpen = false" class="btn-close-modal" title="Đóng">&times;</button>
+        </div>
+
+        <div class="modal-large-body">
+          <!-- Hộp ghi chú yêu cầu của giảng viên -->
+          <div class="supplement-instruction-banner">
+            <div class="banner-title">
+              <span>📢</span>
+              <strong>Ý kiến chỉ đạo từ Giảng viên ({{ editingRecord.teacherName }}):</strong>
+            </div>
+            <p class="banner-note">{{ editingRecord.note || 'Giảng viên yêu cầu bổ sung minh chứng hợp lệ hoặc cập nhật lại lý do.' }}</p>
+          </div>
+
+          <!-- Thông tin môn học -->
+          <div class="course-brief-card">
+            <div class="brief-item">
+              <span class="brief-label">Môn học:</span>
+              <span class="brief-val"><strong>{{ editingRecord.courseName }}</strong> ({{ editingRecord.courseCode }})</span>
+            </div>
+            <div class="brief-item">
+              <span class="brief-label">Học kỳ:</span>
+              <span class="brief-val">{{ editingRecord.semester }}</span>
+            </div>
+            <div class="brief-item">
+              <span class="brief-label">Giảng viên bộ môn:</span>
+              <span class="brief-val">{{ editingRecord.teacherName }} ({{ editingRecord.teacherCode }})</span>
+            </div>
+          </div>
+
+          <!-- Form sửa lý do -->
+          <section class="form-section">
+            <div class="section-label-row">
+              <span class="step-num">1</span>
+              <label class="form-label font-bold">Lý do xin điểm I (Chỉnh sửa / Bổ sung lý do chi tiết):</label>
+            </div>
+            <textarea 
+              v-model="editReason" 
+              rows="3" 
+              class="form-textarea" 
+              placeholder="Nhập lý do chi tiết..."
+            ></textarea>
+          </section>
+
+          <!-- Form bổ sung minh chứng -->
+          <section class="form-section">
+            <div class="section-label-row">
+              <span class="step-num">2</span>
+              <label class="form-label font-bold">Minh chứng bổ sung (Tên file minh chứng / Link tài liệu):</label>
+            </div>
+            <input 
+              type="text" 
+              v-model="editAttachment" 
+              class="form-input" 
+              placeholder="Ví dụ: giay_vien_phi_dau_do.pdf hoặc link Google Drive minh chứng"
+            />
+          </section>
+
+          <!-- Lời giải trình cho giảng viên -->
+          <section class="form-section">
+            <div class="section-label-row">
+              <span class="step-num">3</span>
+              <label class="form-label font-bold">Lời giải trình / Phản hồi đến Giảng viên phụ trách:</label>
+            </div>
+            <textarea 
+              v-model="editExplanation" 
+              rows="2" 
+              class="form-textarea" 
+              placeholder="Ví dụ: Em đã cập nhật giấy tờ minh chứng theo yêu cầu. Kính mong Thầy xem xét và phê duyệt lại cho em ạ."
+            ></textarea>
+          </section>
+
+          <!-- Cam kết -->
+          <section class="form-section">
+            <label class="commitment-checkbox-label">
+              <input type="checkbox" v-model="editCommitment" class="checkbox-input" />
+              <span>Tôi cam kết các thông tin và minh chứng bổ sung là hoàn toàn trung thực, chính xác và chịu mọi trách nhiệm theo quy định của nhà trường.</span>
+            </label>
+          </section>
+        </div>
+
+        <div class="modal-large-footer">
+          <button 
+            type="button" 
+            class="btn btn-outline" 
+            @click="isSupplementModalOpen = false"
+            :disabled="isSubmittingSupplement"
+          >
+            Hủy bỏ
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-black"
+            @click="submitSupplementApplication"
+            :disabled="isSubmittingSupplement"
+          >
+            <span v-if="isSubmittingSupplement" class="spinner-small"></span>
+            <span>{{ isSubmittingSupplement ? 'Đang gửi lại hồ sơ...' : 'Xác nhận & Gửi lại hồ sơ cho Giảng viên' }}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -730,6 +885,15 @@ const isSubmitting = ref(false)
 // State Modal chi tiết
 const detailModalRecord = ref(null)
 
+// State Modal Chỉnh sửa / Bổ sung hồ sơ
+const isSupplementModalOpen = ref(false)
+const editingRecord = ref(null)
+const editReason = ref('')
+const editAttachment = ref('')
+const editExplanation = ref('')
+const editCommitment = ref(false)
+const isSubmittingSupplement = ref(false)
+
 // 1. Tải danh mục loại hồ sơ từ CSDL app.loai_ho_so
 const fetchDocTypes = async () => {
   if (!$keycloak.authenticated) return
@@ -768,29 +932,148 @@ const fetchNotifications = async () => {
 const fetchMyRecords = async () => {
   if (!$keycloak.authenticated) return
   try {
-    const data = await $fetch('http://localhost:9080/api/postgrest/ho_so?select=id,ma_hs,ma_sv,ma_loai,ngay_nop,trang_thai,ly_do,hoc_ky,loai_ho_so(ten_loai)', {
+    const data = await $fetch('http://localhost:9080/api/postgrest/ho_so?select=id,ma_hs,ma_sv,ma_loai,ma_dk,ngay_nop,trang_thai,ly_do,ghi_chu,hoc_ky,loai_ho_so(ten_loai),dang_ky_mon(id,ma_mon,diem_so,diem_chu,mon_hoc(ten_mon,so_tc,ma_cb_phu_trach,can_bo(ho_ten,ma_cb)))&order=ngay_nop.desc', {
       headers: { Authorization: `Bearer ${$keycloak.token}` }
     })
     
     userRecords.value = data.map(item => {
+      const isSupplementRequired = (item.trang_thai === 'Cần bổ sung' || item.trang_thai?.includes('bổ sung'))
       let statusClass = 'status-pending'
       if (item.trang_thai === 'Đã duyệt') statusClass = 'status-completed'
       else if (item.trang_thai === 'Từ chối') statusClass = 'status-rejected'
       else if (item.trang_thai === 'Đang duyệt') statusClass = 'status-processing'
+      else if (isSupplementRequired) statusClass = 'status-warning'
 
       return {
+        dbId: item.id,
         id: item.ma_hs || `HS-${item.id}`,
         title: item.loai_ho_so?.ten_loai || (item.ma_loai === 'XIN_DIEM_I' ? 'Đơn xin điểm I' : item.ma_loai),
         date: new Date(item.ngay_nop).toLocaleDateString('vi-VN'),
         status: item.trang_thai,
         statusClass: statusClass,
         semester: item.hoc_ky,
+        reason: item.ly_do,
+        note: item.ghi_chu,
+        isSupplementRequired: isSupplementRequired,
         isDiemI: item.ma_loai === 'XIN_DIEM_I',
-        department: item.ma_loai === 'XIN_DIEM_I' ? 'Khoa & Giảng viên bộ môn' : 'Phòng Đào tạo'
+        department: item.ma_loai === 'XIN_DIEM_I' ? 'Khoa & Giảng viên bộ môn' : 'Phòng Đào tạo',
+        maDk: item.ma_dk,
+        courseCode: item.dang_ky_mon?.ma_mon,
+        courseName: item.dang_ky_mon?.mon_hoc?.ten_mon,
+        credits: item.dang_ky_mon?.mon_hoc?.so_tc || 3,
+        teacherName: item.dang_ky_mon?.mon_hoc?.can_bo?.ho_ten || 'Giảng viên bộ môn',
+        teacherCode: item.dang_ky_mon?.mon_hoc?.ma_cb_phu_trach || item.dang_ky_mon?.mon_hoc?.can_bo?.ma_cb || 'CB001',
+        finalScore: item.dang_ky_mon?.diem_so
       }
     })
   } catch (error) {
     console.error('Lỗi lấy hồ sơ sinh viên:', error)
+  }
+}
+
+// Mở modal chỉnh sửa / bổ sung hồ sơ
+const openSupplementModal = (record) => {
+  editingRecord.value = record
+  editReason.value = record.reason || ''
+  editAttachment.value = ''
+  editExplanation.value = ''
+  editCommitment.value = false
+  isSupplementModalOpen.value = true
+}
+
+// Gửi lại hồ sơ đã bổ sung
+const submitSupplementApplication = async () => {
+  if (!editReason.value.trim()) {
+    alert('Vui lòng không để trống lý do!')
+    return
+  }
+  if (!editExplanation.value.trim() && !editAttachment.value.trim()) {
+    alert('Vui lòng nhập minh chứng đính kèm hoặc nội dung giải trình bổ sung cho Giảng viên!')
+    return
+  }
+  if (!editCommitment.value) {
+    alert('Vui lòng tích chọn cam kết thông tin bổ sung là chính xác!')
+    return
+  }
+
+  isSubmittingSupplement.value = true
+  try {
+    const rec = editingRecord.value
+    let combinedNote = ''
+    if (editAttachment.value.trim()) {
+      combinedNote += `Minh chứng bổ sung: ${editAttachment.value.trim()}`
+    }
+    if (editExplanation.value.trim()) {
+      combinedNote += (combinedNote ? ' | ' : '') + `Sinh viên giải trình bổ sung: ${editExplanation.value.trim()}`
+    }
+
+    // 1. Cập nhật hồ sơ trong app.ho_so sang trạng thái 'Mới' để Giảng viên kiểm tra lại
+    await $fetch(`http://localhost:9080/api/postgrest/ho_so?id=eq.${rec.dbId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${$keycloak.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: {
+        ly_do: editReason.value.trim(),
+        ghi_chu: combinedNote,
+        trang_thai: 'Mới'
+      }
+    })
+
+    // 2. Kích hoạt Flowable process instance mới cho Giảng viên thẩm định lại
+    try {
+      await $fetch('http://localhost:9080/api/flowable/process-api/runtime/process-instances', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${$keycloak.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: {
+          processDefinitionKey: 'quyTrinhDuyetDiemI_CNTT',
+          variables: [
+            { name: 'hoSoId', value: Number(rec.dbId) },
+            { name: 'maDk', value: Number(rec.maDk) },
+            { name: 'maSv', value: String(studentId.value) },
+            { name: 'giangVienId', value: String(rec.teacherCode) },
+            { name: 'truongKhoaId', value: 'TK_KTPM' },
+            { name: 'diemHienTai', value: Number(rec.finalScore || 0) }
+          ]
+        }
+      })
+    } catch (flowErr) {
+      console.warn('Thông báo kích hoạt Flowable bổ sung:', flowErr)
+    }
+
+    // 3. Gửi thông báo đến Giảng viên phụ trách môn học
+    try {
+      await $fetch('http://localhost:9080/api/postgrest/thong_bao', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${$keycloak.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: {
+          ma_hs: rec.id,
+          ma_cb: rec.teacherCode,
+          noi_dung: `Sinh viên ${studentId.value} (${user.value.name}) đã cập nhật và gửi lại hồ sơ ${rec.id} cho môn ${rec.courseName || 'học phần'}. Vui lòng kiểm tra lại.`,
+          trang_thai_doc: false
+        }
+      })
+    } catch (notifErr) {
+      console.warn('Lỗi gửi thông báo cho Giảng viên:', notifErr)
+    }
+
+    isSupplementModalOpen.value = false
+    toastMessage.value = `Bổ sung hồ sơ ${rec.id} thành công! Đơn đã được chuyển lại cho Giảng viên (${rec.teacherName}) để thẩm định lại.`
+    setTimeout(() => { toastMessage.value = '' }, 8000)
+
+    await fetchMyRecords()
+  } catch (err) {
+    console.error('Lỗi khi nộp bổ sung hồ sơ:', err)
+    alert('Có lỗi xảy ra khi nộp bổ sung hồ sơ. Vui lòng thử lại!')
+  } finally {
+    isSubmittingSupplement.value = false
   }
 }
 
@@ -1133,8 +1416,25 @@ const currentTabTitle = computed(() => {
 .status-processing { background-color: #e0f2fe; color: #0369a1; }
 .status-completed { background-color: #dcfce7; color: #166534; }
 .status-rejected { background-color: #fee2e2; color: #991b1b; }
+.status-warning { background-color: #ffedd5; color: #c2410c; border: 1px solid #fdba74; font-weight: 700; }
+.action-btn-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .btn-table-action { padding: 5px 12px; font-size: 0.82rem; font-weight: 600; border: 1px solid #cbd5e1; background-color: #ffffff; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; }
 .btn-table-action:hover { background-color: #000000; color: #ffffff; border-color: #000000; }
+.btn-supplement { background-color: #ea580c !important; color: #ffffff !important; border-color: #c2410c !important; font-weight: 700 !important; }
+.btn-supplement:hover { background-color: #c2410c !important; color: #ffffff !important; }
+.supplement-alert-box { background-color: #fff7ed; border: 1.5px solid #fdba74; border-radius: 8px; padding: 14px 16px; margin: 14px 0; }
+.supplement-alert-header { display: flex; align-items: center; gap: 8px; color: #c2410c; font-size: 0.95rem; margin-bottom: 6px; }
+.supplement-alert-content { font-size: 0.9rem; color: #9a3412; line-height: 1.5; background: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px dashed #fed7aa; margin-bottom: 12px; }
+.btn-warning-action { background-color: #ea580c; color: #ffffff; border: none; padding: 9px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.88rem; transition: background-color 0.15s ease; width: 100%; text-align: center; }
+.btn-warning-action:hover { background-color: #c2410c; }
+.badge-warning-icon { background-color: #ea580c !important; color: #ffffff !important; font-size: 1.2rem; }
+.supplement-instruction-banner { background-color: #fff7ed; border: 1.5px solid #fdba74; border-radius: 8px; padding: 14px 16px; }
+.banner-title { display: flex; align-items: center; gap: 8px; color: #c2410c; font-size: 0.95rem; margin-bottom: 4px; }
+.banner-note { font-size: 0.92rem; color: #9a3412; line-height: 1.5; margin: 0; }
+.course-brief-card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; font-size: 0.88rem; }
+.brief-item { display: flex; gap: 8px; }
+.brief-label { color: #64748b; min-width: 140px; }
+.brief-val { color: #0f172a; }
 .empty-state-cell { text-align: center; padding: 32px !important; color: #94a3b8; font-style: italic; }
 
 /* TAB APPLY: DANH MỤC LOẠI ĐƠN */

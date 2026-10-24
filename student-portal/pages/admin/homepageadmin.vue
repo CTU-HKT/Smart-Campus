@@ -699,14 +699,16 @@ const fetchWorklist = async () => {
       hoSoData.forEach(h => {
         const activeTask = activeTasksByHoSoId.get(Number(h.id))
         const isDiemI = (h.ma_loai === 'XIN_DIEM_I')
-        const teacherCodeOfCourse = h.dang_ky_mon?.mon_hoc?.can_bo?.ma_cb || h.dang_ky_mon?.mon_hoc?.ma_cb_phu_trach || null
+        const teacherCodeOfCourse = h.dang_ky_mon?.mon_hoc?.ma_cb_phu_trach || h.dang_ky_mon?.mon_hoc?.can_bo?.ma_cb || null
 
         // PHÂN NHÓM & PHÂN QUYỀN RÕ RÀNG:
-        // - Giảng viên (teacher): CHỈ ĐƯỢC XEM hồ sơ của môn học do chính mình phụ trách!
-        //   Hồ sơ gửi đến giảng viên khác (teacher2, CB002, ...) sẽ bị loại bỏ hoàn toàn khỏi worklist của teacher1.
+        // - Giảng viên (teacher): CHỈ ĐƯỢC XEM & DUYỆT hồ sơ của môn học do chính mình phụ trách!
+        //   CB001: Chỉ xem CT101, CT177.
+        //   CB002: Chỉ xem CT176, CT207.
+        //   Tuyệt đối không thấy hồ sơ của giảng viên khác!
         // - Trưởng khoa (dean): Xem toàn bộ hồ sơ trong Khoa CNTT&TT.
-        if (!isDean && currentOfficerCode !== teacherCodeOfCourse && (!activeTask || activeTask.assignee !== currentOfficerCode)) {
-          return // Bỏ qua hồ sơ của giảng viên khác
+        if (!isDean && currentOfficerCode !== teacherCodeOfCourse) {
+          return // Bỏ qua hoàn toàn hồ sơ của môn học do giảng viên khác phụ trách!
         }
 
         let canReview = false
@@ -745,10 +747,14 @@ const fetchWorklist = async () => {
             if (!isDean && currentOfficerCode === teacherCodeOfCourse) {
               canReview = true
             }
+          } else if (h.trang_thai === 'Cần bổ sung' || h.trang_thai?.includes('bổ sung')) {
+            taskLabel = 'Cần bổ sung'
+            statusCode = 'warning'
+            canReview = false // Chờ sinh viên cập nhật lại hồ sơ
           } else if (h.trang_thai === 'Đang duyệt') {
             taskLabel = 'Đang duyệt'
             statusCode = 'processing'
-            canReview = false
+            canReview = isDean // Trưởng khoa duyệt nếu đang duyệt ở bước khoa
           } else if (h.trang_thai === 'Đã duyệt') {
             taskLabel = 'Đã duyệt'
             statusCode = 'completed'
@@ -934,7 +940,7 @@ const submitReviewDecision = async () => {
         newTrangThai = 'Đang duyệt'
         notePrefix = `Giảng viên thông qua (DAT): ${reviewComment.value.trim() || 'Hồ sơ hợp lệ, đề nghị chuyển Trưởng khoa'}`
       } else if (reviewDecision.value === 'BO_SUNG') {
-        newTrangThai = 'Đang duyệt'
+        newTrangThai = 'Cần bổ sung'
         notePrefix = `Giảng viên yêu cầu bổ sung: ${reviewComment.value.trim()}`
       } else if (reviewDecision.value === 'TU_CHOI') {
         newTrangThai = 'Từ chối'

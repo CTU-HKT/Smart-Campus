@@ -20,3 +20,15 @@ CREATE POLICY cb_insert_notifications ON app.thong_bao FOR INSERT TO authenticat
 CREATE UNIQUE INDEX IF NOT EXISTS uq_ho_so_ma_sv_ma_dk 
   ON app.ho_so(ma_sv, ma_loai, ma_dk) 
   WHERE ma_dk IS NOT NULL;
+
+-- Cho phép sinh viên cập nhật lại hồ sơ của mình khi được yêu cầu bổ sung
+DROP POLICY IF EXISTS sv_update_own_applications ON app.ho_so;
+CREATE POLICY sv_update_own_applications ON app.ho_so FOR UPDATE TO authenticated
+  USING (ma_sv = app.jwt_ma_sv())
+  WITH CHECK (ma_sv = app.jwt_ma_sv());
+
+-- Cho phép trạng thái 'Cần bổ sung' trong app.ho_so
+ALTER TABLE app.ho_so DROP CONSTRAINT IF EXISTS ho_so_trang_thai_check;
+ALTER TABLE app.ho_so ADD CONSTRAINT ho_so_trang_thai_check 
+  CHECK (trang_thai IN ('Mới', 'Đang duyệt', 'Đã duyệt', 'Từ chối', 'Cần bổ sung'));
+
