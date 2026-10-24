@@ -525,6 +525,29 @@
     "realmRoles" : [ "teacher", "dean", "default-roles-dxos" ],
     "notBefore" : 0,
     "groups" : [ ]
+  }, {
+    "id" : "5616f8a8-f748-460c-83c5-46db86665c5c",
+    "username" : "teacher2",
+    "firstName" : "Cán Bộ",
+    "lastName" : "2",
+    "email" : "teacher2@example.com",
+    "emailVerified" : true,
+    "enabled" : true,
+    "createdTimestamp" : 1792508360000,
+    "totp" : false,
+    "credentials" : [ {
+      "id" : "5c9d0e23-4567-8901-bcde-f01234567890",
+      "type" : "password",
+      "userLabel" : "My password",
+      "createdDate" : 1792508360000,
+      "secretData" : "{\"value\":\"2c36euK5cWd0XsFCq9heVmJyeF9Apgn2TQE6kA5g8Xw=\",\"salt\":\"2X2ijF76NCrLmx6dNoZYAg==\",\"additionalParameters\":{}}",
+      "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+    } ],
+    "disableableCredentialTypes" : [ ],
+    "requiredActions" : [ ],
+    "realmRoles" : [ "teacher", "default-roles-dxos" ],
+    "notBefore" : 0,
+    "groups" : [ ]
   } ],
   "scopeMappings" : [ {
     "clientScope" : "offline_access",

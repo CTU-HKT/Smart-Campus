@@ -10,6 +10,7 @@ ON CONFLICT (ma_loai) DO NOTHING;
 -- 2. Seed Can Bo / Giang Vien
 INSERT INTO app.can_bo(ma_cb, keycloak_sub, ho_ten, chuc_vu, don_vi, email) VALUES
   ('CB001', 'a77c975b-0bf7-4ced-ba7a-21aa077778d8', 'Nguyễn Văn C', 'Giảng viên', 'Khoa Công nghệ Thông tin & Truyền thông', 'teacher1@example.com'),
+  ('CB002', '5616f8a8-f748-460c-83c5-46db86665c5c', 'Cán Bộ 2', 'Giảng viên', 'Khoa Công nghệ Thông tin & Truyền thông', 'teacher2@example.com'),
   ('TK_KTPM', 'a57ad140-2913-4db6-9ae2-c314dcebdf1d', 'Nguyễn Trưởng Khoa', 'Trưởng khoa', 'Khoa Công nghệ Thông tin & Truyền thông', 'truongkhoaktpm@smartcampus.edu.vn')
 ON CONFLICT (ma_cb) DO UPDATE SET
   keycloak_sub = EXCLUDED.keycloak_sub,
@@ -18,10 +19,12 @@ ON CONFLICT (ma_cb) DO UPDATE SET
   don_vi = EXCLUDED.don_vi,
   email = EXCLUDED.email;
 
+
+
 -- 3. Seed Sinh Vien
 INSERT INTO app.sinh_vien(ma_sv, keycloak_sub, ho_ten, ngay_sinh, lop, khoa, email, sdt) VALUES
-  ('B2100001', '0c38b276-3f90-48e5-bda4-c9b7e4e51faa', 'Nguyễn Văn A', '2003-01-15', 'DI21V7A1', 'Công nghệ Thông tin & Truyền thông', 'student1@example.com', '0912345678'),
-  ('B2100002', 'cb6c42b6-2ea5-466b-8412-e99a67085959', 'Trần Thị B', '2003-05-20', 'DI21V7A2', 'Công nghệ Thông tin & Truyền thông', 'student2@example.com', '0987654321')
+  ('B2100001', '0c38b276-3f90-48e5-bda4-c9b7e4e51faa', 'Học sinh 1', '2003-01-15', 'DI21V7A1', 'Công nghệ Thông tin & Truyền thông', 'student1@example.com', '0912345678'),
+  ('B2100002', 'cb6c42b6-2ea5-466b-8412-e99a67085959', 'Học sinh 2', '2003-05-20', 'DI21V7A2', 'Công nghệ Thông tin & Truyền thông', 'student2@example.com', '0987654321')
 ON CONFLICT (ma_sv) DO UPDATE SET
   keycloak_sub = EXCLUDED.keycloak_sub,
   ho_ten = EXCLUDED.ho_ten,
@@ -34,10 +37,10 @@ ON CONFLICT (ma_sv) DO UPDATE SET
 -- 4. Seed Mon Hoc
 INSERT INTO app.mon_hoc(ma_mon, ten_mon, so_tc, ma_cb_phu_trach) VALUES
   ('CT101', 'Lập trình Căn bản', 4, 'CB001'),
-  ('CT176', 'Kiến trúc máy tính', 3, 'CB001'),
+  ('CT176', 'Kiến trúc máy tính', 3, 'CB002'),
   ('CT177', 'Cấu trúc dữ liệu và giải thuật', 3, 'CB001'),
   ('CT202', 'Nguyên lý hệ điều hành', 3, 'TK_KTPM'),
-  ('CT207', 'Phát triển ứng dụng Web', 3, 'CB001')
+  ('CT207', 'Phát triển ứng dụng Web', 3, 'CB002')
 ON CONFLICT (ma_mon) DO UPDATE SET
   ten_mon = EXCLUDED.ten_mon,
   so_tc = EXCLUDED.so_tc,
@@ -45,7 +48,7 @@ ON CONFLICT (ma_mon) DO UPDATE SET
 
 -- 5. Seed Dang Ky Mon
 INSERT INTO app.dang_ky_mon(ma_sv, ma_mon, hoc_ky, trang_thai_dk, diem_chu, diem_so, ngay_cap_nhat_diem) VALUES
-  ('B2100001', 'CT101', 'HK1 2025-2026', 'Đã học', 'A', 9.0, now()),
+  ('B2100001', 'CT101', 'HK1 2025-2026', 'Đã học', 'B', 7.0, now()),
   ('B2100001', 'CT176', 'HK1 2025-2026', 'Đã học', 'B+', 8.0, now()),
   ('B2100001', 'CT177', 'HK2 2025-2026', 'Đang học', 'A', 8.5, now()),
   ('B2100001', 'CT207', 'HK2 2025-2026', 'Đang học', NULL, NULL, NULL),

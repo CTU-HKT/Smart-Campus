@@ -16,6 +16,26 @@
 
       <!-- 2. Menu Điều hướng Sidebar -->
       <nav class="sidebar-nav">
+        <!-- Mục Home -->
+        <NuxtLink to="/user/homepageuser" class="nav-item">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span class="nav-label">Home</span>
+        </NuxtLink>
+
+        <!-- Mục Nộp hồ sơ trực tuyến -->
+        <NuxtLink to="/user/usernophoso" class="nav-item">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          <span class="nav-label">Nộp hồ sơ trực tuyến</span>
+        </NuxtLink>
+
         <!-- Mục Kết quả học tập (Đang chọn) -->
         <div class="nav-item active">
           <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -236,8 +256,11 @@
                   <td class="col-score text-center">{{ course.processScore ?? '-' }}</td>
                   <td class="col-score text-center">{{ course.examScore ?? '-' }}</td>
                   <td class="col-final text-center">
-                    <span class="score-badge" :class="getScoreClass(course.finalScore)">
-                      {{ course.finalScore !== null ? Number(course.finalScore).toFixed(1) : '-' }}
+                    <span v-if="course.letterGrade === 'I' || course.finalScore === null" class="score-badge score-low">
+                      -
+                    </span>
+                    <span v-else class="score-badge" :class="getScoreClass(course.finalScore)">
+                      {{ Number(course.finalScore).toFixed(1) }}
                     </span>
                   </td>
                   <td class="col-letter text-center font-bold">
@@ -246,7 +269,7 @@
                     </span>
                   </td>
                   <td class="col-gpa4 text-center font-mono">
-                    {{ course.gpa4 !== null ? Number(course.gpa4).toFixed(1) : '-' }}
+                    {{ (course.letterGrade === 'I' || course.gpa4 === null) ? '-' : Number(course.gpa4).toFixed(1) }}
                   </td>
                   <td class="col-status text-center">
                     <span class="status-pill" :class="course.passed ? 'passed' : 'failed'">
@@ -336,11 +359,11 @@ const currentStats = computed(() => {
   courses.forEach(c => {
     totalCredits += c.credits
     if (c.passed) passedCredits += c.credits
-    if (c.finalScore !== null && c.finalScore !== undefined) {
+    if (c.letterGrade !== 'I' && c.finalScore !== null && c.finalScore !== undefined) {
       gradedCredits += c.credits
       sumScore10Weighted += c.finalScore * c.credits
     }
-    if (c.gpa4 !== null && c.gpa4 !== undefined) {
+    if (c.letterGrade !== 'I' && c.gpa4 !== null && c.gpa4 !== undefined) {
       sumScore4Weighted += c.gpa4 * c.credits
     }
   })
@@ -413,9 +436,10 @@ onMounted(async () => {
 
       if (Array.isArray(data) && data.length > 0) {
         allCourses.value = data.map(item => {
-          const finalScore = item.diem_so !== null && item.diem_so !== undefined ? Number(item.diem_so) : null
+          const isDiemI = item.diem_chu === 'I'
+          const finalScore = !isDiemI && item.diem_so !== null && item.diem_so !== undefined ? Number(item.diem_so) : null
           let gpa4 = null
-          if (finalScore !== null) {
+          if (finalScore !== null && !isDiemI) {
             if (finalScore >= 8.5) gpa4 = 4.0
             else if (finalScore >= 8.0) gpa4 = 3.5
             else if (finalScore >= 7.0) gpa4 = 3.0
@@ -425,7 +449,7 @@ onMounted(async () => {
             else if (finalScore >= 4.0) gpa4 = 1.0
             else gpa4 = 0.0
           }
-          const passed = item.trang_thai_dk === 'Đã học' || (finalScore !== null && finalScore >= 4.0)
+          const passed = !isDiemI && item.trang_thai_dk === 'Đã học' && finalScore !== null && finalScore >= 4.0
 
           return {
             id: item.id,
@@ -445,14 +469,53 @@ onMounted(async () => {
           }
         })
 
+        // Hàm tính khoảng cách thời gian giữa một học kỳ và thời gian thực tế hiện tại
+        const getSemesterProximityScore = (semStr) => {
+          const now = new Date()
+          const match = semStr.match(/HK\s*(\d+)[\s\-_]+(\d{4})[\s\-_]+(\d{4})/i)
+          if (match) {
+            const term = parseInt(match[1], 10)
+            const startYear = parseInt(match[2], 10)
+            const endYear = parseInt(match[3], 10)
+            
+            // Ước lượng ngày giữa học kỳ (midpoint) theo lịch đào tạo ĐH:
+            // HK1: khoảng 15/11 năm bắt đầu
+            // HK2: khoảng 15/04 năm kết thúc
+            // HK3 / Hè: khoảng 15/07 năm kết thúc
+            let midDate
+            if (term === 1) {
+              midDate = new Date(startYear, 10, 15)
+            } else if (term === 2) {
+              midDate = new Date(endYear, 3, 15)
+            } else {
+              midDate = new Date(endYear, 6, 15)
+            }
+            return Math.abs(midDate.getTime() - now.getTime())
+          }
+          return Infinity
+        }
+
         const uniqueSems = [...new Set(data.map(item => item.hoc_ky).filter(Boolean))]
         if (uniqueSems.length > 0) {
-          semesters.value = uniqueSems.map((sem, idx) => ({
+          // Tìm học kỳ có thời gian gần với thời gian thực tế nhất
+          let closestSem = uniqueSems[0]
+          let minDiff = Infinity
+
+          uniqueSems.forEach(sem => {
+            const diff = getSemesterProximityScore(sem)
+            if (diff < minDiff) {
+              minDiff = diff
+              closestSem = sem
+            }
+          })
+
+          semesters.value = uniqueSems.map(sem => ({
             id: sem,
-            name: sem === 'HK1-2025-2026' ? 'Học kỳ 1 (2025 - 2026)' : sem,
-            isCurrent: idx === 0
+            name: sem,
+            isCurrent: sem === closestSem
           }))
-          selectedSemester.value = uniqueSems[0]
+          // Mặc định chọn học kỳ gần với thời gian thực nhất (học kỳ hiện tại)
+          selectedSemester.value = closestSem
         }
       } else {
         allCourses.value = []
@@ -572,6 +635,7 @@ onMounted(async () => {
 .grade-d\+ { background: #f97316; color: #fff; }
 .grade-d { background: #fb923c; color: #fff; }
 .grade-f { background: #ef4444; color: #fff; }
+.grade-i { background: #f59e0b; color: #fff; font-weight: 800; }
 .status-pill { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; }
 .status-pill.passed { background: #dcfce7; color: #15803d; }
 .status-pill.failed { background: #fee2e2; color: #b91c1c; }

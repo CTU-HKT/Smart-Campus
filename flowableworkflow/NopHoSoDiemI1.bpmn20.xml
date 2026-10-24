@@ -2,47 +2,47 @@
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://cntt.workflow.edu.vn/diem-i" exporter="Flowable Open Source Modeler" exporterVersion="6.8.0">
   <process id="quyTrinhDuyetDiemI_CNTT" name="NopHoSoDiemI" isExecutable="true">
     <startEvent id="startEvent" name="Sinh vien nop don online" flowable:formFieldValidation="true"></startEvent>
-    <serviceTask id="stTiepNhan" name="Tiep nhan, cap ma don, luu ho so" scriptFormat="javascript" flowable:autoStoreVariables="false">
+    <scriptTask id="stTiepNhan" name="Tiep nhan, cap ma don, luu ho so" scriptFormat="javascript" flowable:autoStoreVariables="false">
       <script><![CDATA[// Tiep nhan ho so]]></script>
-    </serviceTask>
-    <serviceTask id="stKiemTraTuDong" name="Kiem tra du lieu va tep dinh kem" scriptFormat="javascript" flowable:autoStoreVariables="false">
+    </scriptTask>
+    <scriptTask id="stKiemTraTuDong" name="Kiem tra du lieu va tep dinh kem" scriptFormat="javascript" flowable:autoStoreVariables="false">
       <script><![CDATA[execution.setVariable("hoSoHopLe", true);]]></script>
-    </serviceTask>
+    </scriptTask>
     <exclusiveGateway id="gwHoSoHopLe" name="Ho so hop le?"></exclusiveGateway>
-    <serviceTask id="stThongBaoLoi" name="Thong bao loi de sinh vien sua" scriptFormat="javascript" flowable:autoStoreVariables="false">
+    <scriptTask id="stThongBaoLoi" name="Thong bao loi de sinh vien sua" scriptFormat="javascript" flowable:autoStoreVariables="false">
       <script><![CDATA[// Thong bao loi]]></script>
-    </serviceTask>
+    </scriptTask>
     <endEvent id="endCanSua" name="Can sua va nop lai"></endEvent>
-    <serviceTask id="stGhiNhanHopLe" name="Ghi nhan hop le, gui bien nhan &amp; chuyen GV" scriptFormat="javascript" flowable:autoStoreVariables="false">
+    <scriptTask id="stGhiNhanHopLe" name="Ghi nhan hop le, gui bien nhan &amp; chuyen GV" scriptFormat="javascript" flowable:autoStoreVariables="false">
       <script><![CDATA[// Chuyen GV]]></script>
-    </serviceTask>
+    </scriptTask>
     <userTask id="utGiangVienKiemTra" name="Giang vien hoc phan xet duyet" flowable:assignee="${giangVienId}" flowable:formFieldValidation="true">
       <extensionElements>
         <modeler:initiator-can-complete xmlns:modeler="http://flowable.org/modeler"><![CDATA[false]]></modeler:initiator-can-complete>
       </extensionElements>
     </userTask>
     <exclusiveGateway id="gwKetQuaGV" name="Ket qua GV kiem tra?"></exclusiveGateway>
-    <serviceTask id="stGVTuChoi" name="Luu ly do GV tu choi va thong bao" scriptFormat="javascript" flowable:autoStoreVariables="false">
+    <scriptTask id="stGVTuChoi" name="Luu ly do GV tu choi va thong bao" scriptFormat="javascript" flowable:autoStoreVariables="false">
       <script><![CDATA[// GV tu choi]]></script>
-    </serviceTask>
-    <serviceTask id="stGVBoSung" name="Thong bao can bo sung minh chung" scriptFormat="javascript" flowable:autoStoreVariables="false">
+    </scriptTask>
+    <scriptTask id="stGVBoSung" name="Thong bao can bo sung minh chung" scriptFormat="javascript" flowable:autoStoreVariables="false">
       <script><![CDATA[// Can bo sung]]></script>
-    </serviceTask>
-    <serviceTask id="stChuyenKhoa" name="Luu ket qua &amp; Cho Truong Khoa duyet" scriptFormat="javascript" flowable:autoStoreVariables="false">
+    </scriptTask>
+    <scriptTask id="stChuyenKhoa" name="Luu ket qua &amp; Cho Truong Khoa duyet" scriptFormat="javascript" flowable:autoStoreVariables="false">
       <script><![CDATA[// Chuyen Truong Khoa]]></script>
-    </serviceTask>
+    </scriptTask>
     <userTask id="utKhoaPheDuyet" name="Truong Khoa phe duyet" flowable:assignee="${truongKhoaId}" flowable:formFieldValidation="true">
       <extensionElements>
         <modeler:initiator-can-complete xmlns:modeler="http://flowable.org/modeler"><![CDATA[false]]></modeler:initiator-can-complete>
       </extensionElements>
     </userTask>
     <exclusiveGateway id="gwQuyetDinhKhoa" name="Quyet dinh phe duyet?"></exclusiveGateway>
-    <serviceTask id="stLuuKetQuaVaPDF" name="Xac nhan phe duyet ho so" scriptFormat="javascript" flowable:autoStoreVariables="false">
+    <scriptTask id="stLuuKetQuaVaPDF" name="Xac nhan phe duyet ho so" scriptFormat="javascript" flowable:autoStoreVariables="false">
       <script><![CDATA[// Phe duyet ho so]]></script>
-    </serviceTask>
-    <serviceTask id="stKhoaTuChoi" name="Luu ly do va thong bao tu choi" scriptFormat="javascript" flowable:autoStoreVariables="false">
+    </scriptTask>
+    <scriptTask id="stKhoaTuChoi" name="Luu ly do va thong bao tu choi" scriptFormat="javascript" flowable:autoStoreVariables="false">
       <script><![CDATA[// Khoa tu choi]]></script>
-    </serviceTask>
+    </scriptTask>
     <endEvent id="endDonBiTuChoi" name="Don bi tu choi"></endEvent>
     <endEvent id="endChoBoSung" name="Cho sinh vien bo sung"></endEvent>
     <endEvent id="endPheDuyet" name="Ho so duoc phe duyet"></endEvent>
@@ -81,8 +81,8 @@
     </sequenceFlow>
     <sequenceFlow id="f16" sourceRef="stKhoaTuChoi" targetRef="endKetThucTuChoi"></sequenceFlow>
   </process>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_quyTrinhDuyetDiemI_CNTT1">
-    <bpmndi:BPMNPlane bpmnElement="quyTrinhDuyetDiemI_CNTT1" id="BPMNPlane_quyTrinhDuyetDiemI_CNTT1">
+  <bpmndi:BPMNDiagram id="BPMNDiagram_quyTrinhDuyetDiemI_CNTT">
+    <bpmndi:BPMNPlane bpmnElement="quyTrinhDuyetDiemI_CNTT" id="BPMNPlane_quyTrinhDuyetDiemI_CNTT">
       <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
         <omgdc:Bounds height="30.0" width="30.0" x="114.99999756283248" y="130.3556596798682"></omgdc:Bounds>
       </bpmndi:BPMNShape>
