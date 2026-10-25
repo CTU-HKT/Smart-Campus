@@ -131,7 +131,11 @@ services:
       FLYWAY_PASSWORD: smartcampus
       FLYWAY_SCHEMAS: public
       FLYWAY_DEFAULT_SCHEMA: public
-      FLYWAY_BASELINE_ON_MIGRATE: "false"
+
+      #Để chạy được database có sẵn
+      FLYWAY_BASELINE_ON_MIGRATE: "true" 
+      FLYWAY_BASELINE_VERSION: "0" 
+
       FLYWAY_CONNECT_RETRIES: "30"
 
     volumes:
