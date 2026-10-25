@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -euo pipefail
 
 LOG_PREFIX="[DX-OS Init - Keycloak]"

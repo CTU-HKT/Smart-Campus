@@ -59,10 +59,11 @@ MỤC 2: QUẢN TRỊ, VẬN HÀNH VÀ CẬP NHẬT
    - Đăng nhập Keycloak Admin Console tại: http://localhost:8080
      + Tài khoản : admin
      + Mật khẩu  : Admin123!
-    - Tài khoản test : 
+    - Tài khoản test student Portal :
         student1 123
         student2 123
         teacher1 123
+        truongkhoaktpm 123 (Trưởng khoa KTPM)
     - Chọn Realm: Chuyển sang realm "dxos" (ở góc trên bên trái).
     - Thêm tài khoản mới:
      + Vào menu Users -> Nhấn "Add user" -> Điền Username, Email, First name, Last name -> Save.

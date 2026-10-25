@@ -189,13 +189,17 @@ onMounted(async () => {
 
   const parsed = $keycloak.tokenParsed || {}
   const roles = parsed.realm_access?.roles || []
-  isTeacher.value = roles.includes('teacher')
+  isTeacher.value = roles.includes('teacher') || roles.includes('dean')
   const sub = parsed.sub
   const token = $keycloak.token
 
   try {
-    // Lấy thông tin từ bảng public.profiles trong PostgreSQL
-    const res = await $fetch(`http://localhost:9080/api/postgrest/profiles?user_id=eq.${sub}`, {
+    // Lấy thông tin từ app.can_bo hoặc app.sinh_vien trong PostgreSQL
+    const endpoint = isTeacher.value
+      ? `http://localhost:9080/api/postgrest/can_bo?keycloak_sub=eq.${sub}`
+      : `http://localhost:9080/api/postgrest/sinh_vien?keycloak_sub=eq.${sub}`
+
+    const res = await $fetch(endpoint, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -203,9 +207,33 @@ onMounted(async () => {
 
     const data = res?.[0]
     if (data) {
-      profile.value = data
+      if (isTeacher.value) {
+        profile.value = {
+          user_id: sub,
+          student_code: data.ma_cb,
+          full_name: data.ho_ten,
+          email: data.email,
+          phone: 'Chưa cập nhật',
+          date_of_birth: '',
+          faculty: data.don_vi,
+          major: data.chuc_vu,
+          updated_at: ''
+        }
+      } else {
+        profile.value = {
+          user_id: sub,
+          student_code: data.ma_sv,
+          full_name: data.ho_ten,
+          email: data.email,
+          phone: data.sdt || 'Chưa cập nhật',
+          date_of_birth: data.ngay_sinh,
+          faculty: data.khoa,
+          major: data.lop,
+          updated_at: ''
+        }
+      }
     } else {
-      // Nếu chưa có profile trong database, chuyển ngay sang hoàn thiện hồ sơ
+      // Nếu chưa có hồ sơ trong database, chuyển ngay sang hoàn thiện hồ sơ
       navigateTo('/complete-profile')
       return
     }
@@ -219,330 +247,46 @@ onMounted(async () => {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-.info-page-wrapper {
-  min-height: 100vh;
-  background-color: #f8fafc;
-  color: #0f172a;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding-bottom: 60px;
-}
-
-/* ================= NAVBAR ================= */
-.navbar {
-  width: 100%;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 18px 0;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-
-.nav-container {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: #000000;
-  text-decoration: none;
-  letter-spacing: -0.02em;
-}
-
-.logo-bold {
-  font-weight: 800;
-}
-
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.btn-dashboard {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 6px;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #0f172a;
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.15s ease;
-}
-
-.btn-dashboard:hover {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.btn-logout {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 6px;
-  background-color: transparent;
-  border: 1px solid transparent;
-  color: #64748b;
-  font-size: 0.88rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-logout:hover {
-  background-color: #fee2e2;
-  color: #dc2626;
-}
-
-/* ================= CONTAINER ================= */
-.info-container {
-  max-width: 1080px;
-  margin: 40px auto 0;
-  padding: 0 24px;
-}
-
-.loading-box {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 60px;
-  text-align: center;
-  color: #64748b;
-}
-
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #f1f5f9;
-  border-top-color: #000000;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ================= PROFILE CARD ================= */
-.profile-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.profile-header {
-  padding: 36px 36px 30px;
-  border-bottom: 1px solid #f1f5f9;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.avatar-circle {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background-color: #0f172a;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.header-details {
-  flex: 1;
-  min-width: 260px;
-}
-
-.name-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-
-.user-display-name {
-  font-size: 1.65rem;
-  font-weight: 800;
-  color: #000000;
-  letter-spacing: -0.02em;
-}
-
-.role-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background-color: #f1f5f9;
-  color: #475569;
-}
-
-.role-badge.teacher-badge {
-  background-color: #000000;
-  color: #ffffff;
-}
-
-.user-subtext {
-  font-size: 0.95rem;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.user-subtext strong {
-  color: #0f172a;
-}
-
-.dot-sep {
-  color: #cbd5e1;
-}
-
-.header-action {
-  display: flex;
-  align-items: center;
-}
-
-.btn-edit {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 6px;
-  background-color: #000000;
-  color: #ffffff;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: opacity 0.15s ease;
-}
-
-.btn-edit:hover {
-  opacity: 0.85;
-}
-
-/* ================= INFO GRID ================= */
-.info-section {
-  padding: 36px;
-}
-
-.section-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 24px;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px 32px;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f8fafc;
-}
-
-.info-label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #64748b;
-}
-
-.info-value {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #0f172a;
-}
-
-.info-value.highlight {
-  font-weight: 700;
-  color: #000000;
-}
-
-.font-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-
-.pill-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background-color: #eff6ff;
-  color: #1d4ed8;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.pill-badge.pill-teacher {
-  background-color: #f1f5f9;
-  color: #0f172a;
-}
-
-/* ================= FOOTER ================= */
-.info-footer {
-  padding: 18px 36px;
-  background-color: #fafbfd;
-  border-top: 1px solid #f1f5f9;
-  font-size: 0.82rem;
-  color: #94a3b8;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.info-footer code {
-  background: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: #475569;
-}
-
-@media (max-width: 768px) {
-  .profile-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.info-page-wrapper { min-height: 100vh; background-color: #f8fafc; color: #0f172a; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding-bottom: 60px; }
+.navbar { width: 100%; background-color: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 18px 0; position: sticky; top: 0; z-index: 20; }
+.nav-container { max-width: 1080px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 1.25rem; font-weight: 500; color: #000000; text-decoration: none; letter-spacing: -0.02em; }
+.logo-bold { font-weight: 800; }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+.btn-dashboard { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; background-color: #ffffff; border: 1px solid #e2e8f0; color: #0f172a; font-size: 0.88rem; font-weight: 600; text-decoration: none; transition: all 0.15s ease; }
+.btn-dashboard:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
+.btn-logout { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 6px; background-color: transparent; border: 1px solid transparent; color: #64748b; font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
+.btn-logout:hover { background-color: #fee2e2; color: #dc2626; }
+.info-container { max-width: 1080px; margin: 40px auto 0; padding: 0 24px; }
+.loading-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 60px; text-align: center; color: #64748b; }
+.spinner { width: 36px; height: 36px; border: 3px solid #f1f5f9; border-top-color: #000000; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.profile-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04); overflow: hidden; }
+.profile-header { padding: 36px 36px 30px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.avatar-circle { width: 80px; height: 80px; border-radius: 50%; background-color: #0f172a; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+.header-details { flex: 1; min-width: 260px; }
+.name-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.user-display-name { font-size: 1.65rem; font-weight: 800; color: #000000; letter-spacing: -0.02em; }
+.role-badge { font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 999px; background-color: #f1f5f9; color: #475569; }
+.role-badge.teacher-badge { background-color: #000000; color: #ffffff; }
+.user-subtext { font-size: 0.95rem; color: #64748b; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.user-subtext strong { color: #0f172a; }
+.dot-sep { color: #cbd5e1; }
+.header-action { display: flex; align-items: center; }
+.btn-edit { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 6px; background-color: #000000; color: #ffffff; font-size: 0.9rem; font-weight: 600; text-decoration: none; transition: opacity 0.15s ease; }
+.btn-edit:hover { opacity: 0.85; }
+.info-section { padding: 36px; }
+.section-title { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 24px; }
+.info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px 32px; }
+.info-item { display: flex; flex-direction: column; gap: 6px; padding-bottom: 16px; border-bottom: 1px solid #f8fafc; }
+.info-label { font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+.info-value { font-size: 1rem; font-weight: 500; color: #0f172a; }
+.info-value.highlight { font-weight: 700; color: #000000; }
+.font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 600; letter-spacing: 0.05em; }
+.pill-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; background-color: #eff6ff; color: #1d4ed8; font-size: 0.85rem; font-weight: 600; }
+.pill-badge.pill-teacher { background-color: #f1f5f9; color: #0f172a; }
+.info-footer { padding: 18px 36px; background-color: #fafbfd; border-top: 1px solid #f1f5f9; font-size: 0.82rem; color: #94a3b8; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.info-footer code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #475569; }
+@media (max-width: 768px) { .profile-header { flex-direction: column; align-items: flex-start; } .info-grid { grid-template-columns: 1fr; } }
 </style>

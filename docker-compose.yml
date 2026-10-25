@@ -61,7 +61,7 @@ services:
     depends_on:
       - etcd
     volumes:
-      # Náº¡p cáº¥u hÃ¬nh Standalone
+     # Nạp cấu hình Standalone
       - ./apisix_conf/config.yaml:/usr/local/apisix/conf/config.yaml
       - ./apisix_conf/apisix.yaml:/usr/local/apisix/conf/apisix.yaml
     ports:
@@ -73,12 +73,16 @@ services:
     image: postgrest/postgrest
     container_name: smart-campus-postgrest
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
     environment:
-      # DÃ¹ng user authenticator (Ä‘Ã£ táº¡o trong init.sql)
+      # Dùng user authenticator (đã tạo trong init.sql)
       PGRST_DB_URI: postgres://authenticator:secretpassword@postgres:5432/smartcampus
-      PGRST_DB_SCHEMAS: public
-      # DÃ¹ng role web_anon (Ä‘Ã£ táº¡o trong init.sql)
+      # Expose cả schema app và public (app làm schema mặc định)
+      PGRST_DB_SCHEMAS: app,public
+      # Dùng role web_anon (đã tạo trong init.sql)
       PGRST_DB_ANON_ROLE: web_anon
       # Cá»¥c JWKS láº¥y tá»« Keycloak Ä‘á»ƒ verify token
       PGRST_JWT_SECRET: '{"keys":[{"kid":"fkn8y9rvrsE2DpuV3zKXI1GNrwS27jzzMuWp3aCL2LE","kty":"RSA","alg":"RSA-OAEP","use":"enc","x5c":["MIIClzCCAX8CBgGhTdC/3DANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARkeG9zMB4XDTI2MTAxODA2NTk0OFoXDTM2MTAxODA3MDEyOFowDzENMAsGA1UEAwwEZHhvczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKqy42gUhVktg0Clr/eCABEbQXhEUH8gG909EUiJRU6Hv3zqJkoSd6bLaIl9Jcm/B9TleghjXwDEfMl5vLEDIPmFyNKrMgum75t8ARoc5qoR1L3sXiZw9TWjgDjZA48xVtBLEaRqDXu32/4Sku2q5tZVSfnkUj0XwT94K/wHr5mIGFZ7I7gz5Ae8aimkD3hTLlwT00JK3M0Aml0jGKbime2I5/iJCEFn/rnRByUCf4B8qnRG+xbfcLxYsZwUgUadSiZyK64wN4+aPYJ7jTYSGJRGPpJaf52bG1ii4yHF3zT1JlTnpGp2puvOFjF78A2M+fE4ba9kDJW21Sz4pMF8JNsCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAYYlORRqIH9euk5fOL2vXYTEwVDk34Ye/RlNOM8ibCK6AfdaDwsNxuz3Ln5za19Sad9jKOeXnVPjwZqaGS/cKM42f6Ly+8Yj2/0T9/iJ3/GoJ/jOf4Tk/vvGmHx7ndogLqBpLDFg27A4r3pEUDEXzppNkfL0kSpQnE3l9hA5lyfA2SdDb335fd5lbTEfgvqgzhlRDg210e2ibd17xusDt9g4gjeEur/2GQA63OFbENlzJvG2nc5X7Jro+I3mwCYimYVW+BsKQnj9eMthUNPmw/DlRM1l5nizxT7SB1Pm/1lFPyJW49gZImdF7e2giQ87A/qvKQUWOUuxckxtpkd8dug=="],"x5t":"JSsMUA69gsXEsRxEkHAuDjeoJvg","x5t#S256":"cOioMva3Q8vIvc8kGY0_tLW83rZresnCZ98Z839nAP0","n":"qrLjaBSFWS2DQKWv94IAERtBeERQfyAb3T0RSIlFToe_fOomShJ3pstoiX0lyb8H1OV6CGNfAMR8yXm8sQMg-YXI0qsyC6bvm3wBGhzmqhHUvexeJnD1NaOAONkDjzFW0EsRpGoNe7fb_hKS7arm1lVJ-eRSPRfBP3gr_AevmYgYVnsjuDPkB7xqKaQPeFMuXBPTQkrczQCaXSMYpuKZ7Yjn-IkIQWf-udEHJQJ_gHyqdEb7Ft9wvFixnBSBRp1KJnIrrjA3j5o9gnuNNhIYlEY-klp_nZsbWKLjIcXfNPUmVOekanam684WMXvwDYz58Thtr2QMlbbVLPikwXwk2w","e":"AQAB"},{"kid":"LwMTyEAHRgPViey5e3SfOi3_Tbs8AFK5NGOI4BRPIsY","kty":"RSA","alg":"RS256","use":"sig","x5c":["MIIClzCCAX8CBgGhTdC+qTANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARkeG9zMB4XDTI2MTAxODA2NTk0OFoXDTM2MTAxODA3MDEyOFowDzENMAsGA1UEAwwEZHhvczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANDaFmvysBRcYupSmZksItgpwrkktRRA7INLT4Nu3pbXN2HQ1gpfDztSqe87MQX8YCMnZKUMFUylWCddhaeTCjsYhaQj3Z4ikuSXTjzshkVUCV3gc6K9ott37sY+H43ejWtBVZtCTjeRtgquqEuUjheiGGGlG+zz2f+zLG5IYCuVwSZgb9HbXJOPxBFNVFwb5c0El0nu1L9OBdnAAF5gICZIUQSU8+IqCzsE47I9oFnE7Rk3rTxuGKhaz2YcMDmHP5b3WZ1EkYN1iqGAe1nhprICRiYLe2KmYp22Wk6jqcjW17kYH7hkkR2xvIqrReXlPcQtsVAE3CJ6zO+fONUyUk0CAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAjfpqjyNktbFnc7aamcCzXiX62t2ldw4SoYvePZLUgyEqhL9B+KnLLE6NxXYdQkq4Ap1w6bAfqGluXWh79tonGYgzKLwMwzpvtbZJxJTqKxdYvRm8fjGKCjmdZ+uZ+d5/S2NEqdv/5l1A6hI/SCf41KuPVepifevEYk/D8VtEetay/9lMS+Tb7sxqstG6QzLNAHI50Tl171zv9QbenqRkkscvsjxF7ZJxTb/l6Or/JlDbtTVuF/gzIHBF/4Vz7rrA+/zsscrXJMurN0S/eaaidTirCD6yPX82kR5phJcAOl02eYoBUPG7W3FbS/6OXiA0tc8kV1XDM4exDgTlalZqBw=="],"x5t":"Mhdb6eyDXYLQnka5qCeqPC0KiqE","x5t#S256":"81aOXKrB3tEpsmGWKS10ytcaDnbMBJtO5l8u-sBDnvk","n":"0NoWa_KwFFxi6lKZmSwi2CnCuSS1FEDsg0tPg27eltc3YdDWCl8PO1Kp7zsxBfxgIydkpQwVTKVYJ12Fp5MKOxiFpCPdniKS5JdOPOyGRVQJXeBzor2i23fuxj4fjd6Na0FVm0JON5G2Cq6oS5SOF6IYYaUb7PPZ_7MsbkhgK5XBJmBv0dtck4_EEU1UXBvlzQSXSe7Uv04F2cAAXmAgJkhRBJTz4ioLOwTjsj2gWcTtGTetPG4YqFrPZhwwOYc_lvdZnUSRg3WKoYB7WeGmsgJGJgt7YqZinbZaTqOpyNbXuRgfuGSRHbG8iqtF5eU9xC2xUATcInrM75841TJSTQ","e":"AQAB"}]}'
@@ -131,7 +135,11 @@ services:
       FLYWAY_PASSWORD: smartcampus
       FLYWAY_SCHEMAS: public
       FLYWAY_DEFAULT_SCHEMA: public
-      FLYWAY_BASELINE_ON_MIGRATE: "false"
+
+      #Để chạy được database có sẵn
+      FLYWAY_BASELINE_ON_MIGRATE: "true" 
+      FLYWAY_BASELINE_VERSION: "0" 
+
       FLYWAY_CONNECT_RETRIES: "30"
 
     volumes:
@@ -150,6 +158,30 @@ services:
     container_name: smart-campus-signing
 
     restart: unless-stopped
+  flowable-init:
+    image: curlimages/curl:latest
+    restart: "no"
+    depends_on:
+      - flowable
+    volumes:
+      - ./flowableworkflow/NopHoSoDiemI1.bpmn20.xml:/tmp/NopHoSoDiemI1.bpmn20.xml:ro
+    command: >
+      sh -c "
+        echo 'Waiting for Flowable engine...'
+        while ! curl -s -u admin:admin http://flowable:8081/flowable-rest/service/repository/process-definitions > /dev/null; do
+          sleep 2
+        done
+        if ! curl -s -u admin:admin 'http://flowable:8081/flowable-rest/service/repository/process-definitions?key=quyTrinhDuyetDiemI_CNTT' | grep -q 'quyTrinhDuyetDiemI_CNTT'; then
+          echo 'Deploying BPMN to Flowable...'
+          curl -s -u admin:admin -X POST http://flowable:8081/flowable-rest/service/repository/deployments -F 'file=@/tmp/NopHoSoDiemI1.bpmn20.xml'
+          echo 'Deploy complete!'
+        else
+          echo 'BPMN already deployed.'
+        fi
+      "
+    networks:
+      - smart-campus
+
 
     environment:
       SOFTHSM2_CONF: /app/softhsm2.conf

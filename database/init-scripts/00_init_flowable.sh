@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # ==============================================================================
 # DX-OS SMARTCAMPUS - Flowable Engine Database Initialization Script (Production / OLP 2026)
 # File: database/init-scripts/00_init_flowable.sh
