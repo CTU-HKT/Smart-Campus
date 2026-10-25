@@ -73,11 +73,15 @@ services:
     image: postgrest/postgrest
     container_name: smart-campus-postgrest
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
     environment:
       # Dùng user authenticator (đã tạo trong init.sql)
       PGRST_DB_URI: postgres://authenticator:secretpassword@postgres:5432/smartcampus
-      PGRST_DB_SCHEMAS: public
+      # Expose cả schema app và public (app làm schema mặc định)
+      PGRST_DB_SCHEMAS: app,public
       # Dùng role web_anon (đã tạo trong init.sql)
       PGRST_DB_ANON_ROLE: web_anon
       # Cục JWKS lấy từ Keycloak để verify token
@@ -143,6 +147,30 @@ services:
 
     command: migrate
 
+    networks:
+      - smart-campus
+
+  flowable-init:
+    image: curlimages/curl:latest
+    restart: "no"
+    depends_on:
+      - flowable
+    volumes:
+      - ./flowableworkflow/NopHoSoDiemI1.bpmn20.xml:/tmp/NopHoSoDiemI1.bpmn20.xml:ro
+    command: >
+      sh -c "
+        echo 'Waiting for Flowable engine...'
+        while ! curl -s -u admin:admin http://flowable:8081/flowable-rest/service/repository/process-definitions > /dev/null; do
+          sleep 2
+        done
+        if ! curl -s -u admin:admin 'http://flowable:8081/flowable-rest/service/repository/process-definitions?key=quyTrinhDuyetDiemI_CNTT' | grep -q 'quyTrinhDuyetDiemI_CNTT'; then
+          echo 'Deploying BPMN to Flowable...'
+          curl -s -u admin:admin -X POST http://flowable:8081/flowable-rest/service/repository/deployments -F 'file=@/tmp/NopHoSoDiemI1.bpmn20.xml'
+          echo 'Deploy complete!'
+        else
+          echo 'BPMN already deployed.'
+        fi
+      "
     networks:
       - smart-campus
 

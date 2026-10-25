@@ -8,7 +8,7 @@ CREATE TABLE app.ho_so (
  ly_do TEXT NOT NULL,
  hoc_ky VARCHAR(20) NOT NULL,
  trang_thai VARCHAR(20) NOT NULL DEFAULT 'Mới'
-  CHECK (trang_thai IN ('Mới','Đang duyệt','Đã duyệt','Từ chối')),
+  CHECK (trang_thai IN ('Mới','Đang duyệt','Đã duyệt','Từ chối','Bổ Sung')),
  ghi_chu TEXT,
  CONSTRAINT chk_ho_so_diem_i CHECK (ma_loai <> 'XIN_DIEM_I' OR ma_dk IS NOT NULL),
  CONSTRAINT fk_ho_so_dkm FOREIGN KEY (ma_dk,ma_sv,hoc_ky)

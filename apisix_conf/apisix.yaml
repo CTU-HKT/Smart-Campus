@@ -30,8 +30,13 @@ routes:
     plugins:
       proxy-rewrite:
         regex_uri:
+          - "^/api/flowable/process-api/(.*)"
+          - "/flowable-rest/service/$1"
           - "^/api/flowable/(.*)"
           - "/$1"
+        headers:
+          set:
+            Authorization: "Basic YWRtaW46YWRtaW4="
       openid-connect:
         client_id: "portal"
         client_secret: ""
