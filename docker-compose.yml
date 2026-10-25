@@ -61,7 +61,7 @@ services:
     depends_on:
       - etcd
     volumes:
-     # Nạp cấu hình Standalone
+      # Nạp cấu hình Standalone
       - ./apisix_conf/config.yaml:/usr/local/apisix/conf/config.yaml
       - ./apisix_conf/apisix.yaml:/usr/local/apisix/conf/apisix.yaml
     ports:
@@ -84,7 +84,7 @@ services:
       PGRST_DB_SCHEMAS: app,public
       # Dùng role web_anon (đã tạo trong init.sql)
       PGRST_DB_ANON_ROLE: web_anon
-      # Cá»¥c JWKS láº¥y tá»« Keycloak Ä‘á»ƒ verify token
+      # Cục JWKS lấy từ Keycloak để verify token
       PGRST_JWT_SECRET: '{"keys":[{"kid":"fkn8y9rvrsE2DpuV3zKXI1GNrwS27jzzMuWp3aCL2LE","kty":"RSA","alg":"RSA-OAEP","use":"enc","x5c":["MIIClzCCAX8CBgGhTdC/3DANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARkeG9zMB4XDTI2MTAxODA2NTk0OFoXDTM2MTAxODA3MDEyOFowDzENMAsGA1UEAwwEZHhvczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKqy42gUhVktg0Clr/eCABEbQXhEUH8gG909EUiJRU6Hv3zqJkoSd6bLaIl9Jcm/B9TleghjXwDEfMl5vLEDIPmFyNKrMgum75t8ARoc5qoR1L3sXiZw9TWjgDjZA48xVtBLEaRqDXu32/4Sku2q5tZVSfnkUj0XwT94K/wHr5mIGFZ7I7gz5Ae8aimkD3hTLlwT00JK3M0Aml0jGKbime2I5/iJCEFn/rnRByUCf4B8qnRG+xbfcLxYsZwUgUadSiZyK64wN4+aPYJ7jTYSGJRGPpJaf52bG1ii4yHF3zT1JlTnpGp2puvOFjF78A2M+fE4ba9kDJW21Sz4pMF8JNsCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAYYlORRqIH9euk5fOL2vXYTEwVDk34Ye/RlNOM8ibCK6AfdaDwsNxuz3Ln5za19Sad9jKOeXnVPjwZqaGS/cKM42f6Ly+8Yj2/0T9/iJ3/GoJ/jOf4Tk/vvGmHx7ndogLqBpLDFg27A4r3pEUDEXzppNkfL0kSpQnE3l9hA5lyfA2SdDb335fd5lbTEfgvqgzhlRDg210e2ibd17xusDt9g4gjeEur/2GQA63OFbENlzJvG2nc5X7Jro+I3mwCYimYVW+BsKQnj9eMthUNPmw/DlRM1l5nizxT7SB1Pm/1lFPyJW49gZImdF7e2giQ87A/qvKQUWOUuxckxtpkd8dug=="],"x5t":"JSsMUA69gsXEsRxEkHAuDjeoJvg","x5t#S256":"cOioMva3Q8vIvc8kGY0_tLW83rZresnCZ98Z839nAP0","n":"qrLjaBSFWS2DQKWv94IAERtBeERQfyAb3T0RSIlFToe_fOomShJ3pstoiX0lyb8H1OV6CGNfAMR8yXm8sQMg-YXI0qsyC6bvm3wBGhzmqhHUvexeJnD1NaOAONkDjzFW0EsRpGoNe7fb_hKS7arm1lVJ-eRSPRfBP3gr_AevmYgYVnsjuDPkB7xqKaQPeFMuXBPTQkrczQCaXSMYpuKZ7Yjn-IkIQWf-udEHJQJ_gHyqdEb7Ft9wvFixnBSBRp1KJnIrrjA3j5o9gnuNNhIYlEY-klp_nZsbWKLjIcXfNPUmVOekanam684WMXvwDYz58Thtr2QMlbbVLPikwXwk2w","e":"AQAB"},{"kid":"LwMTyEAHRgPViey5e3SfOi3_Tbs8AFK5NGOI4BRPIsY","kty":"RSA","alg":"RS256","use":"sig","x5c":["MIIClzCCAX8CBgGhTdC+qTANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDDARkeG9zMB4XDTI2MTAxODA2NTk0OFoXDTM2MTAxODA3MDEyOFowDzENMAsGA1UEAwwEZHhvczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANDaFmvysBRcYupSmZksItgpwrkktRRA7INLT4Nu3pbXN2HQ1gpfDztSqe87MQX8YCMnZKUMFUylWCddhaeTCjsYhaQj3Z4ikuSXTjzshkVUCV3gc6K9ott37sY+H43ejWtBVZtCTjeRtgquqEuUjheiGGGlG+zz2f+zLG5IYCuVwSZgb9HbXJOPxBFNVFwb5c0El0nu1L9OBdnAAF5gICZIUQSU8+IqCzsE47I9oFnE7Rk3rTxuGKhaz2YcMDmHP5b3WZ1EkYN1iqGAe1nhprICRiYLe2KmYp22Wk6jqcjW17kYH7hkkR2xvIqrReXlPcQtsVAE3CJ6zO+fONUyUk0CAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAjfpqjyNktbFnc7aamcCzXiX62t2ldw4SoYvePZLUgyEqhL9B+KnLLE6NxXYdQkq4Ap1w6bAfqGluXWh79tonGYgzKLwMwzpvtbZJxJTqKxdYvRm8fjGKCjmdZ+uZ+d5/S2NEqdv/5l1A6hI/SCf41KuPVepifevEYk/D8VtEetay/9lMS+Tb7sxqstG6QzLNAHI50Tl171zv9QbenqRkkscvsjxF7ZJxTb/l6Or/JlDbtTVuF/gzIHBF/4Vz7rrA+/zsscrXJMurN0S/eaaidTirCD6yPX82kR5phJcAOl02eYoBUPG7W3FbS/6OXiA0tc8kV1XDM4exDgTlalZqBw=="],"x5t":"Mhdb6eyDXYLQnka5qCeqPC0KiqE","x5t#S256":"81aOXKrB3tEpsmGWKS10ytcaDnbMBJtO5l8u-sBDnvk","n":"0NoWa_KwFFxi6lKZmSwi2CnCuSS1FEDsg0tPg27eltc3YdDWCl8PO1Kp7zsxBfxgIydkpQwVTKVYJ12Fp5MKOxiFpCPdniKS5JdOPOyGRVQJXeBzor2i23fuxj4fjd6Na0FVm0JON5G2Cq6oS5SOF6IYYaUb7PPZ_7MsbkhgK5XBJmBv0dtck4_EEU1UXBvlzQSXSe7Uv04F2cAAXmAgJkhRBJTz4ioLOwTjsj2gWcTtGTetPG4YqFrPZhwwOYc_lvdZnUSRg3WKoYB7WeGmsgJGJgt7YqZinbZaTqOpyNbXuRgfuGSRHbG8iqtF5eU9xC2xUATcInrM75841TJSTQ","e":"AQAB"}]}'
     ports:
       - "3000:3000"
@@ -107,13 +107,13 @@ services:
       - postgres
     environment:
       SERVER_PORT: 8081
-      #Cáº¥u hÃ¬nh káº¿t ná»‘i flowable vá»›i postgreSQL
+      #Cấu hình kết nối flowable với postgreSQL
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/flowable"
-      #TÃ i khoáº£n Ä‘á»ƒ cÃ³ thá»ƒ dÃ¹ng postgreSQL. Vá»›i Ä‘iá»u kiá»‡n postgreSQL Ä‘Ã£ táº¡o vÃ¹ng dá»¯ liá»‡u vá»›i tÃ i khoáº£n vÃ  máº­t kháº©u nhÆ° nÃ y
+      #Tài khoản để có thể dùng postgreSQL. Với điều kiện postgreSQL đã tạo vùng dữ liệu với tài khoản và mật khẩu như này
       SPRING_DATASOURCE_USERNAME: flowable
       SPRING_DATASOURCE_PASSWORD: flowable
-      #TÃ i khoáº£n Ä‘á»ƒ cáº¥u hÃ¬nh Ä‘Æ°á»£c flowable
+      #Tài khoản để cấu hình được flowable
       FLOWABLE_REST_APP_ADMIN_USER_ID: admin
       FLOWABLE_REST_APP_ADMIN_PASSWORD: admin
     ports:
@@ -150,14 +150,6 @@ services:
     networks:
       - smart-campus
 
-  signing-service:
-    build:
-      context: ./signing-service
-      dockerfile: Dockerfile
-
-    container_name: smart-campus-signing
-
-    restart: unless-stopped
   flowable-init:
     image: curlimages/curl:latest
     restart: "no"
@@ -183,56 +175,12 @@ services:
       - smart-campus
 
 
-    environment:
-      SOFTHSM2_CONF: /app/softhsm2.conf
-      SOFTHSM_TOKEN_LABEL: smartcampus-demo
-      SOFTHSM_KEY_LABEL: smartcampus-signer
-      SOFTHSM_USER_PIN: ${SOFTHSM_USER_PIN:?Set SOFTHSM_USER_PIN}
-      SOFTHSM_SO_PIN: ${SOFTHSM_SO_PIN:?Set SOFTHSM_SO_PIN}
-      IMMUDB_HOST: immudb
-      IMMUDB_PORT: "3322"
-      IMMUDB_USERNAME: ${IMMUDB_USERNAME:-immudb}
-      IMMUDB_PASSWORD: ${IMMUDB_PASSWORD:?Set IMMUDB_PASSWORD}
-      SIGNING_DB_HOST: ${SIGNING_DB_HOST:-postgres}
-      SIGNING_DB_PORT: ${SIGNING_DB_PORT:-5432}
-      SIGNING_DB_NAME: ${SIGNING_DB_NAME:-smartcampus}
-      SIGNING_DB_USER: ${SIGNING_DB_USER:-signing_service}
-      SIGNING_DB_PASSWORD: ${SIGNING_DB_PASSWORD:?Set SIGNING_DB_PASSWORD}
-      SIGNING_INTERNAL_API_KEY: ${SIGNING_INTERNAL_API_KEY:?set-in-env}
-      SIGNING_INTERNAL_URL: http://127.0.0.1:8000
-      SIGNING_CERT_PATH: /app/certs/signer.crt
-      SIGNED_PDF_DIR: /app/storage
-    volumes:
-      - softhsm_data:/var/lib/softhsm/tokens
-      - ./signing-service/certs:/app/certs
-      - ledger_trust_state:/var/lib/signing-ledger
-      - signed_pdf_data:/app/storage
-      - signed_pdf_data:/app/storage
-
-    ports:
-      - "127.0.0.1:8001:8000"
-
-    networks:
-      - smart-campus
-
-  immudb:
-    image: codenotary/immudb:1.9.5
-    container_name: smart-campus-immudb
-    restart: unless-stopped
-
-    volumes:
-      - immudb_data:/var/lib/immudb
-
-    networks:
-      - smart-campus
 volumes:
   postgres_data:
   etcd_data:
-  softhsm_data:
-  immudb_data:
-  ledger_trust_state:
-  signed_pdf_data:
+
 networks:
   smart-campus:
     driver: bridge
 
+  
