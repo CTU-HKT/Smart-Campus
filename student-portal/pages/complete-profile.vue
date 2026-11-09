@@ -1,6 +1,6 @@
 <!--
   SPDX-License-Identifier: MIT
-  Copyright (c) 2026 CTU-HKT. All rights reserved.
+  Copyright (c) 2026 CTU-HKT
 -->
 <template>
   <div class="complete-wrapper">
@@ -36,6 +36,7 @@
             v-model="fullName"
             type="text"
             class="form-input"
+            maxlength="100"
             placeholder="Nguyễn Văn A"
             required
           />
@@ -65,9 +66,12 @@
             v-model="userCode"
             type="text"
             class="form-input"
+            maxlength="20"
+            :disabled="!!existingRecord"
             :placeholder="isTeacher ? 'Ví dụ: CB1024, GV08...' : 'Ví dụ: B2101234, B2205678...'"
             required
           />
+          <span v-if="existingRecord" class="input-hint">Mã đã được gán cho tài khoản này và không thể đổi.</span>
         </div>
 
         <!-- Khoa / Đơn vị -->
@@ -81,23 +85,31 @@
             v-model="faculty"
             type="text"
             class="form-input"
+            maxlength="100"
             placeholder="Ví dụ: Công nghệ Thông tin & Truyền thông"
             required
           />
         </div>
 
-        <!-- Ngành / Chuyên môn -->
-        <div class="form-group">
-          <label class="form-label" for="major">
-            {{ isTeacher ? 'Bộ môn / Lĩnh vực chuyên môn' : 'Ngành học' }}
-            <span class="required">*</span>
-          </label>
+        <!-- Chức vụ (cán bộ) -->
+        <div v-if="isTeacher" class="form-group">
+          <label class="form-label" for="chucVu">Chức vụ <span class="required">*</span></label>
+          <select id="chucVu" v-model="chucVu" class="form-input" required>
+            <option value="" disabled>-- Chọn chức vụ --</option>
+            <option v-for="cv in CHUC_VU_OPTIONS" :key="cv" :value="cv">{{ cv }}</option>
+          </select>
+        </div>
+
+        <!-- Ngành học (sinh viên) -->
+        <div v-else class="form-group">
+          <label class="form-label" for="major">Ngành / Lớp <span class="required">*</span></label>
           <input
             id="major"
             v-model="major"
             type="text"
             class="form-input"
-            placeholder="Ví dụ: Kỹ thuật Phần mềm, Khoa học Máy tính..."
+            maxlength="100"
+            placeholder="Ví dụ: Kỹ thuật Phần mềm - K21"
             required
           />
         </div>
@@ -110,18 +122,20 @@
             v-model="phone"
             type="tel"
             class="form-input"
+            maxlength="20"
             placeholder="09xx xxx xxx"
           />
         </div>
 
-        <!-- Ngày sinh -->
-        <div class="form-group">
-          <label class="form-label" for="dateOfBirth">Ngày sinh</label>
+        <!-- Ngày sinh (sinh viên, bắt buộc theo CSDL) -->
+        <div v-if="!isTeacher" class="form-group">
+          <label class="form-label" for="dateOfBirth">Ngày sinh <span class="required">*</span></label>
           <input
             id="dateOfBirth"
             v-model="dateOfBirth"
             type="date"
             class="form-input"
+            required
           />
         </div>
 
@@ -141,6 +155,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
+// Khớp với ràng buộc CHECK của cột app.can_bo.chuc_vu
+const CHUC_VU_OPTIONS = ['Giảng viên', 'Trưởng khoa', 'Chuyên viên PĐT']
+
 const { $keycloak } = useNuxtApp()
 
 const fullName = ref('')
@@ -148,6 +165,7 @@ const email = ref('')
 const userCode = ref('')
 const faculty = ref('')
 const major = ref('')
+const chucVu = ref('')
 const phone = ref('')
 const dateOfBirth = ref('')
 
@@ -155,6 +173,10 @@ const isTeacher = ref(false)
 const isSubmitting = ref(false)
 const alertMessage = ref('')
 const alertType = ref('error')
+// Bản ghi hồ sơ đã có trong DB (nếu có). Khi có, lưu bằng PATCH thay vì POST.
+const existingRecord = ref(null)
+
+const apiBase = 'http://localhost:9080/api/postgrest'
 
 onMounted(async () => {
   if (!$keycloak.authenticated) {
@@ -169,25 +191,24 @@ onMounted(async () => {
   fullName.value = parsed.name || `${parsed.given_name || ''} ${parsed.family_name || ''}`.trim() || parsed.preferred_username || ''
   email.value = parsed.email || ''
 
-  // Nếu user đã có bản ghi một phần trong DB thì fetch lên để điền sẵn
+  // Nếu user đã có bản ghi trong DB thì fetch lên để điền sẵn
   try {
     const sub = parsed.sub
-    const endpoint = isTeacher.value
-      ? `http://localhost:9080/api/postgrest/can_bo?keycloak_sub=eq.${sub}`
-      : `http://localhost:9080/api/postgrest/sinh_vien?keycloak_sub=eq.${sub}`
+    const table = isTeacher.value ? 'can_bo' : 'sinh_vien'
 
-    const res = await $fetch(endpoint, {
+    const res = await $fetch(`${apiBase}/${table}?keycloak_sub=eq.${sub}`, {
       headers: {
         Authorization: `Bearer ${$keycloak.token}`
       }
     })
     const existing = res?.[0]
     if (existing) {
+      existingRecord.value = existing
       if (isTeacher.value) {
         if (existing.ma_cb) userCode.value = existing.ma_cb
         if (existing.ho_ten) fullName.value = existing.ho_ten
         if (existing.don_vi) faculty.value = existing.don_vi
-        if (existing.chuc_vu) major.value = existing.chuc_vu
+        if (existing.chuc_vu) chucVu.value = existing.chuc_vu
       } else {
         if (existing.ma_sv) userCode.value = existing.ma_sv
         if (existing.ho_ten) fullName.value = existing.ho_ten
@@ -203,7 +224,12 @@ onMounted(async () => {
 })
 
 const handleSubmit = async () => {
-  if (!userCode.value.trim() || !faculty.value.trim() || !major.value.trim() || !fullName.value.trim()) {
+  const missing = !userCode.value.trim()
+    || !faculty.value.trim()
+    || !fullName.value.trim()
+    || (isTeacher.value ? !chucVu.value : !major.value.trim() || !dateOfBirth.value)
+
+  if (missing) {
     alertType.value = 'error'
     alertMessage.value = 'Vui lòng điền đầy đủ các thông tin bắt buộc (*)'
     return
@@ -216,44 +242,55 @@ const handleSubmit = async () => {
     const parsed = $keycloak.tokenParsed || {}
     const sub = parsed.sub
     const token = $keycloak.token
+    const table = isTeacher.value ? 'can_bo' : 'sinh_vien'
 
-    const endpoint = isTeacher.value
-      ? 'http://localhost:9080/api/postgrest/can_bo'
-      : 'http://localhost:9080/api/postgrest/sinh_vien'
-
-    const payload = isTeacher.value
+    // Dữ liệu gửi đi (không gồm keycloak_sub khi cập nhật, vì khóa này không đổi)
+    const fields = isTeacher.value
       ? {
-          ma_cb: userCode.value.trim(),
-          keycloak_sub: sub,
           ho_ten: fullName.value.trim(),
-          chuc_vu: major.value.trim() || 'Giảng viên',
+          chuc_vu: chucVu.value,
           don_vi: faculty.value.trim(),
           email: email.value.trim()
         }
       : {
-          ma_sv: userCode.value.trim(),
-          keycloak_sub: sub,
           ho_ten: fullName.value.trim(),
-          ngay_sinh: dateOfBirth.value || '2003-01-01',
+          ngay_sinh: dateOfBirth.value,
           lop: major.value.trim(),
           khoa: faculty.value.trim(),
           email: email.value.trim(),
           sdt: phone.value.trim() || null
         }
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify(payload)
-    })
+    const codeField = isTeacher.value ? 'ma_cb' : 'ma_sv'
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+
+    let response
+    if (existingRecord.value) {
+      // Đã có hồ sơ: cập nhật đúng bản ghi của chính user (RLS cho phép)
+      response = await fetch(`${apiBase}/${table}?keycloak_sub=eq.${sub}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(fields)
+      })
+    } else {
+      // Chưa có hồ sơ: tạo mới. Không dùng upsert để tránh đụng vào bản ghi của người khác.
+      response = await fetch(`${apiBase}/${table}`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          [codeField]: userCode.value.trim(),
+          keycloak_sub: sub,
+          ...fields
+        })
+      })
+    }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}))
-      throw new Error(err.message || 'Không thể lưu hồ sơ, vui lòng kiểm tra lại mã định danh.')
+      throw new Error(err.message || `Không thể lưu hồ sơ (mã lỗi ${response.status}).`)
     }
 
     alertType.value = 'success'

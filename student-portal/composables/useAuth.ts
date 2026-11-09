@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 CTU-HKT. All rights reserved.
+// Copyright (c) 2026 CTU-HKT
 
 export type UserRole = 'student' | 'teacher' | 'admin' | null
 

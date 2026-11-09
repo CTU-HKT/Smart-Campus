@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 CTU-HKT. All rights reserved.
+# Copyright (c) 2026 CTU-HKT
 
 routes:
+  # Route for PostgREST API
   - id: 1
     uri: "/api/postgrest/*"
     plugins:
@@ -17,14 +18,16 @@ routes:
         use_jwks: true
         realm: "dxos"
       cors:
-        allow_origins: "*"
-        allow_methods: "*"
-        allow_headers: "*"
+        allow_origins: "http://localhost:3001"
+        allow_methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        allow_headers: "Authorization,Content-Type,Accept,Prefer"
+        allow_credential: true
     upstream:
       type: roundrobin
       nodes:
         "postgrest:3000": 1
 
+  # Route for Flowable Workflow Engine
   - id: 2
     uri: "/api/flowable/*"
     plugins:
@@ -34,9 +37,11 @@ routes:
           - "/flowable-rest/service/$1"
           - "^/api/flowable/(.*)"
           - "/$1"
+        # Flowable REST chỉ hiểu Basic auth. Gateway kiểm tra JWT (openid-connect) trước,
+        # sau đó gắn thông tin đăng nhập dịch vụ lấy từ .env (render lúc khởi động, xem docker-compose.yml).
         headers:
           set:
-            Authorization: "Basic YWRtaW46YWRtaW4="
+            Authorization: "Basic __FLOWABLE_BASIC_B64__"
       openid-connect:
         client_id: "portal"
         client_secret: ""
@@ -45,9 +50,10 @@ routes:
         use_jwks: true
         realm: "dxos"
       cors:
-        allow_origins: "*"
-        allow_methods: "*"
-        allow_headers: "*"
+        allow_origins: "http://localhost:3001"
+        allow_methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        allow_headers: "Authorization,Content-Type,Accept,Prefer"
+        allow_credential: true
     upstream:
       type: roundrobin
       nodes:

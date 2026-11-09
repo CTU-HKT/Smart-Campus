@@ -1,7 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 set -euo pipefail
 
 LOG_PREFIX="[DX-OS Init - Keycloak]"
+
+if [ -z "${KC_DB_PASSWORD:-}" ]; then
+    echo " ${LOG_PREFIX} LỖI: biến KC_DB_PASSWORD chưa được đặt trong .env"
+    exit 1
+fi
 
 echo "======================================================================"
 echo " ${LOG_PREFIX} Bắt đầu khởi tạo CSDL & User cho Keycloak IAM..."
@@ -9,14 +14,14 @@ echo "======================================================================"
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
 
-    -- 1. Tạo User 'keycloak' nếu chưa tồn tại
+    -- 1. Tạo User 'keycloak' nếu chưa tồn tại, đặt mật khẩu từ KC_DB_PASSWORD
     DO \$\$
     BEGIN
         IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'keycloak') THEN
-            CREATE ROLE keycloak WITH LOGIN PASSWORD '1234';
+            CREATE ROLE keycloak WITH LOGIN PASSWORD '${KC_DB_PASSWORD}';
             RAISE NOTICE 'Role "keycloak" đã được tạo thành công.';
         ELSE
-            ALTER ROLE keycloak WITH PASSWORD '1234';
+            ALTER ROLE keycloak WITH PASSWORD '${KC_DB_PASSWORD}';
         END IF;
     END
     \$\$;
