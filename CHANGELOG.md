@@ -1,11 +1,31 @@
 # Changelog
 
+## [0.1.0] - 2026-11-09
+
+First public release (MVP). Supersedes the v1.0.0 snapshot.
+
+### Added
+- Pre-seeded dev accounts in the `dxos` realm (student, teacher, dean) matching seeded database rows.
+- `SECURITY.md`, `CONTRIBUTING.md`, `KNOWN-ISSUES.md`; operations section in README (replaces `GUIDE.txt`).
+- Migration `V12` widening `sinh_vien.lop`.
+- Complete-profile form handles existing profiles with `PATCH` and restricts officer position to the allowed values.
+
+### Changed
+- All credentials come from `.env` (dev defaults in `.env.example`); init scripts read them from the environment.
+- APISIX no longer embeds a fixed Flowable admin header; Basic auth is rendered from `.env` at startup, after JWT verification.
+- APISIX Admin API requires its key and is limited by `allow_admin`; CORS origin restricted to the portal and `PATCH` allowed.
+- License headers use SPDX (`MIT`) instead of "All rights reserved".
+
+### Removed
+- Flowable port `8081` is no longer published; the unused `postgrest.conf` and `database/docker-compose.yml`.
+- `GUIDE.txt` (merged into README).
+
 ## [1.0.0] - 2026-10-20
 
 ### Added
 
 - **Third-Party Compliance (PoF)** - Comprehensive open-source declaration and license compatibility table in README
-- **License & Governance** - MIT License and project operational guide in GUIDE.txt
+- **License & Governance** - MIT License and operational guide (now merged into README)
 - **Changelog Documentation** - Initialized project changelog tracking development history
 
 ### Changed
@@ -52,7 +72,7 @@
 - **Unified Docker Compose** - Root docker-compose.yml orchestrating APISIX, etcd, and Nuxt 3 Student Portal
 - **APISIX & etcd Setup** - Initial Apache APISIX Gateway configuration and etcd distributed storage
 - **Student Portal Boilerplate** - Nuxt 3 frontend application setup with TypeScript and Dockerfile
-- **Operational Guide** - Deployment instructions and commands in GUIDE.txt
+- **Operational Guide** - Deployment instructions and commands (now in README)
 
 ### Fixed
 

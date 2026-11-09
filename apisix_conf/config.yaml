@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 CTU-HKT. All rights reserved.
+# Copyright (c) 2026 CTU-HKT
 
 ---
 plugin_attr:
@@ -175,9 +175,8 @@ deployment:
     enable_admin_ui: true
     allow_admin:
       - 127.0.0.0/24
-      - 172.19.0.0/16
-      - 0.0.0.0/0
-    admin_key_required: false
+      - 172.16.0.0/12
+    admin_key_required: true
   etcd:
     host:
       - http://etcd:2379

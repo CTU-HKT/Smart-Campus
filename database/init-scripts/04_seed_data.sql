@@ -1,11 +1,4 @@
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticator') THEN
-        CREATE ROLE authenticator NOINHERIT LOGIN PASSWORD 'secretpassword';
-    END IF;
-END
-$$;
-
+-- DEV ONLY: mật khẩu mặc định cho môi trường thử nghiệm. Đổi trước khi triển khai.
 GRANT web_anon, authenticated TO authenticator;
 
 INSERT INTO public.users (user_id) VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11') ON CONFLICT DO NOTHING;
